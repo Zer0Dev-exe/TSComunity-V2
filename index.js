@@ -1,62 +1,64 @@
 require('dotenv').config()
 const {
-    Client,
-    GatewayIntentBits,
-    Partials,
-    Collection,
-    ActionRowBuilder,
-    TextInputBuilder,
-    TextInputStyle,
-    ModalBuilder,
-    EmbedBuilder,
-    ButtonBuilder,
-    ButtonStyle,
-    Events,
-    ChannelType,
-    AttachmentBuilder
-  } = require("discord.js");
-  const Canvas = require('canvas');
-  const axios = require('axios');
-  const path = require('path');
+  Client,
+  GatewayIntentBits,
+  Partials,
+  Collection,
+  ActionRowBuilder,
+  TextInputBuilder,
+  TextInputStyle,
+  ModalBuilder,
+  EmbedBuilder,
+  ButtonBuilder,
+  ButtonStyle,
+  Events,
+  ChannelType,
+  AttachmentBuilder
+} = require("discord.js");
 
-  
-  const { loadEvents } = require("./Handlers/cargarEventos");
-  const { loadCommands } = require("./Handlers/cargarComandos");
-  const { loadPrefix } = require('./Handlers/cargarPrefix');
-  const process = require('node:process');
-  const token = process.env.TOKEN;
+const Canvas = require('canvas');
+const axios = require('axios');
+const path = require('path');
+const { exec } = require('node:child_process');
 
-  process.on('unhandledRejection', async (reason, promise) => {
-    console.log('Unhandled Rejection error at:', promise, 'reason', reason);
-  });
+const { loadEvents } = require("./Handlers/cargarEventos");
+const { loadCommands } = require("./Handlers/cargarComandos");
+const { loadPrefix } = require('./Handlers/cargarPrefix');
+const process = require('node:process');
+const token = process.env.TOKEN;
 
-  process.on('uncaughtException', (err) => {
-    console.log('Uncaught Expection', err);
-  });
+process.on('unhandledRejection', async (reason, promise) => {
+  console.log('Unhandled Rejection error at:', promise, 'reason', reason);
+});
 
-  process.on('uncaughtExceptionMonitor', (err, origin) => {
-    console.log('Uncaught Expection Monitor', err, origin);
-  });
+process.on('uncaughtException', (err) => {
+  console.log('Uncaught Exception', err);
+});
 
-  const client = new Client({
-    intents: [Object.keys(GatewayIntentBits)],
-    partials: [Object.keys(Partials), Partials.Channel],
-    allowedMentions: {
-        parse: ["users"]
-      },
-  });
+process.on('uncaughtExceptionMonitor', (err, origin) => {
+  console.log('Uncaught Exception Monitor', err, origin);
+});
 
-  client.commands = new Collection();
-  client.prefixs = new Collection();
-  client.aliases = new Collection();
-  
-  client.login(token).then(() => {
-    loadEvents(client);
-    loadCommands(client);
-    loadPrefix(client)
-  });
+const client = new Client({
+  intents: [Object.keys(GatewayIntentBits)],
+  partials: [Object.keys(Partials), Partials.Channel],
+  allowedMentions: {
+    parse: ["users"]
+  },
+});
 
-  module.exports = client;
+client.commands = new Collection();
+client.prefixs = new Collection();
+client.aliases = new Collection();
+
+client.login(token).then(async () => {
+  // Cargar eventos, comandos y prefijos
+  loadEvents(client);
+  loadCommands(client);
+  loadPrefix(client);
+});
+
+module.exports = client;
 
 const BRAWL_STARS_API_KEY = process.env.BS_APIKEY
 async function fetchPlayerStats(playerTag) {

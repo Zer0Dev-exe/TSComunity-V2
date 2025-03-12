@@ -1,0 +1,12 @@
+{
+    "España": { "codigo": "ES", "emoji": "🇪🇸" },
+    "Francia": { "codigo": "FR", "emoji": "🇫🇷" },
+    "Alemania": { "codigo": "DE", "emoji": "🇩🇪" },
+    "Italia": { "codigo": "IT", "emoji": "🇮🇹" },
+    "Estados Unidos": { "codigo": "US", "emoji": "🇺🇸" },
+    "México": { "codigo": "MX", "emoji": "🇲🇽" },
+    "Argentina": { "codigo": "AR", "emoji": "🇦🇷" },
+    "Brasil": { "codigo": "BR", "emoji": "🇧🇷" },
+    "Reino Unido": { "codigo": "GB", "emoji": "🇬🇧" },
+    "Japón": { "codigo": "JP", "emoji": "🇯🇵" }
+  }
