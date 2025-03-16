@@ -1,17 +1,4 @@
 {
-<<<<<<< HEAD
-    "España": { "codigo": "ES", "emoji": "🇪🇸" },
-    "Francia": { "codigo": "FR", "emoji": "🇫🇷" },
-    "Alemania": { "codigo": "DE", "emoji": "🇩🇪" },
-    "Italia": { "codigo": "IT", "emoji": "🇮🇹" },
-    "Estados Unidos": { "codigo": "US", "emoji": "🇺🇸" },
-    "México": { "codigo": "MX", "emoji": "🇲🇽" },
-    "Argentina": { "codigo": "AR", "emoji": "🇦🇷" },
-    "Brasil": { "codigo": "BR", "emoji": "🇧🇷" },
-    "Reino Unido": { "codigo": "GB", "emoji": "🇬🇧" },
-    "Japón": { "codigo": "JP", "emoji": "🇯🇵" }
-  }
-=======
     "Afganistán": {
        "codigo": "AF",
        "emoji": "🇦🇫"
@@ -245,4 +232,3 @@
        "emoji": "🇻🇳"
     }
  }
->>>>>>> 2c54510e5396de5a47702b3bc5c86ab5ce7ab941
