@@ -32,6 +32,10 @@ module.exports = {
             return message.reply(`⚠️ Este comando solo se puede usar cada 5 horas. Intenta nuevamente en ${timeLeft} minutos.`);
         }
 
+        if (!args) {
+            return message.reply(`⚠️ Debes proporcionar un mensaje junto al comando.`);
+        }
+
         const showUserButton = new ButtonBuilder()
             .setCustomId("showUser")
             .setLabel(`Enviado por ${message.author.username}`)
