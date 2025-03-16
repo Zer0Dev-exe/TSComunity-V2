@@ -1,0 +1,234 @@
+{
+    "Afganistán": {
+       "codigo": "AF",
+       "emoji": "🇦🇫"
+    },
+    "Albania": {
+       "codigo": "AL",
+       "emoji": "🇦🇱"
+    },
+    "Alemania": {
+       "codigo": "DE",
+       "emoji": "🇩🇪"
+    },
+    "Andorra": {
+       "codigo": "AD",
+       "emoji": "🇦🇩"
+    },
+    "Angola": {
+       "codigo": "AO",
+       "emoji": "🇦🇴"
+    },
+    "Arabia Saudita": {
+       "codigo": "SA",
+       "emoji": "🇸🇦"
+    },
+    "Argentina": {
+       "codigo": "AR",
+       "emoji": "🇦🇷"
+    },
+    "Australia": {
+       "codigo": "AU",
+       "emoji": "🇦🇺"
+    },
+    "Austria": {
+       "codigo": "AT",
+       "emoji": "🇦🇹"
+    },
+    "Bélgica": {
+       "codigo": "BE",
+       "emoji": "🇧🇪"
+    },
+    "Bolivia": {
+       "codigo": "BO",
+       "emoji": "🇧🇴"
+    },
+    "Brasil": {
+       "codigo": "BR",
+       "emoji": "🇧🇷"
+    },
+    "Canadá": {
+       "codigo": "CA",
+       "emoji": "🇨🇦"
+    },
+    "Chile": {
+       "codigo": "CL",
+       "emoji": "🇨🇱"
+    },
+    "China": {
+       "codigo": "CN",
+       "emoji": "🇨🇳"
+    },
+    "Colombia": {
+       "codigo": "CO",
+       "emoji": "🇨🇴"
+    },
+    "Corea del Sur": {
+       "codigo": "KR",
+       "emoji": "🇰🇷"
+    },
+    "Costa Rica": {
+       "codigo": "CR",
+       "emoji": "🇨🇷"
+    },
+    "Cuba": {
+       "codigo": "CU",
+       "emoji": "🇨🇺"
+    },
+    "Dinamarca": {
+       "codigo": "DK",
+       "emoji": "🇩🇰"
+    },
+    "Ecuador": {
+       "codigo": "EC",
+       "emoji": "🇪🇨"
+    },
+    "Egipto": {
+       "codigo": "EG",
+       "emoji": "🇪🇬"
+    },
+    "El Salvador": {
+       "codigo": "SV",
+       "emoji": "🇸🇻"
+    },
+    "España": {
+       "codigo": "ES",
+       "emoji": "🇪🇸"
+    },
+    "Estados Unidos": {
+       "codigo": "US",
+       "emoji": "🇺🇸"
+    },
+    "Estonia": {
+       "codigo": "EE",
+       "emoji": "🇪🇪"
+    },
+    "Filipinas": {
+       "codigo": "PH",
+       "emoji": "🇵🇭"
+    },
+    "Finlandia": {
+       "codigo": "FI",
+       "emoji": "🇫🇮"
+    },
+    "Francia": {
+       "codigo": "FR",
+       "emoji": "🇫🇷"
+    },
+    "Grecia": {
+       "codigo": "GR",
+       "emoji": "🇬🇷"
+    },
+    "Guatemala": {
+       "codigo": "GT",
+       "emoji": "🇬🇹"
+    },
+    "Honduras": {
+       "codigo": "HN",
+       "emoji": "🇭🇳"
+    },
+    "Hungría": {
+       "codigo": "HU",
+       "emoji": "🇭🇺"
+    },
+    "India": {
+       "codigo": "IN",
+       "emoji": "🇮🇳"
+    },
+    "Indonesia": {
+       "codigo": "ID",
+       "emoji": "🇮🇩"
+    },
+    "Irán": {
+       "codigo": "IR",
+       "emoji": "🇮🇷"
+    },
+    "Irlanda": {
+       "codigo": "IE",
+       "emoji": "🇮🇪"
+    },
+    "Italia": {
+       "codigo": "IT",
+       "emoji": "🇮🇹"
+    },
+    "Japón": {
+       "codigo": "JP",
+       "emoji": "🇯🇵"
+    },
+    "México": {
+       "codigo": "MX",
+       "emoji": "🇲🇽"
+    },
+    "Nicaragua": {
+       "codigo": "NI",
+       "emoji": "🇳🇮"
+    },
+    "Noruega": {
+       "codigo": "NO",
+       "emoji": "🇳🇴"
+    },
+    "Panamá": {
+       "codigo": "PA",
+       "emoji": "🇵🇦"
+    },
+    "Paraguay": {
+       "codigo": "PY",
+       "emoji": "🇵🇾"
+    },
+    "Perú": {
+       "codigo": "PE",
+       "emoji": "🇵🇪"
+    },
+    "Polonia": {
+       "codigo": "PL",
+       "emoji": "🇵🇱"
+    },
+    "Portugal": {
+       "codigo": "PT",
+       "emoji": "🇵🇹"
+    },
+    "Reino Unido": {
+       "codigo": "GB",
+       "emoji": "🇬🇧"
+    },
+    "República Dominicana": {
+       "codigo": "DO",
+       "emoji": "🇩🇴"
+    },
+    "Rusia": {
+       "codigo": "RU",
+       "emoji": "🇷🇺"
+    },
+    "Sudáfrica": {
+       "codigo": "ZA",
+       "emoji": "🇿🇦"
+    },
+    "Suecia": {
+       "codigo": "SE",
+       "emoji": "🇸🇪"
+    },
+    "Suiza": {
+       "codigo": "CH",
+       "emoji": "🇨🇭"
+    },
+    "Turquía": {
+       "codigo": "TR",
+       "emoji": "🇹🇷"
+    },
+    "Ucrania": {
+       "codigo": "UA",
+       "emoji": "🇺🇦"
+    },
+    "Uruguay": {
+       "codigo": "UY",
+       "emoji": "🇺🇾"
+    },
+    "Venezuela": {
+       "codigo": "VE",
+       "emoji": "🇻🇪"
+    },
+    "Vietnam": {
+       "codigo": "VN",
+       "emoji": "🇻🇳"
+    }
+ }

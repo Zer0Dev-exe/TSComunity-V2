@@ -41,7 +41,7 @@ module.exports = {
         const row = new ActionRowBuilder().addComponents(showUserButton);
         // Si pasa el cooldown, se envía el mensaje y se actualiza el tiempo de uso
         message.channel.send({
-            content: `<@&1173666295556866089>`,
+            content: `<@&1173666295556866089> ${args.join(' ')}`,
             components: [row],
             allowedMentions: { parse: ["users", "roles"] }
         });
