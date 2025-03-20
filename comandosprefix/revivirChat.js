@@ -32,7 +32,7 @@ module.exports = {
             return message.reply(`⚠️ Este comando solo se puede usar cada 5 horas. Intenta nuevamente en ${timeLeft} minutos.`);
         }
 
-        if (!args) {
+        if (args.length === 0) {
             return message.reply(`⚠️ Debes proporcionar un mensaje junto al comando.`);
         }
 
