@@ -468,11 +468,11 @@ setInterval(async () => {
                 const rankings = responseRankings.data
                 const rankingClubs = rankings.items
                 const findClubRanking = rankingClubs.find((c) => c.tag === `#${clubTag}`)
-                const clubRanking = findClubRanking ? `${countriEmoji} \`#${findClubRanking.rank.toString()}\`\n` : ''
+                const clubRanking = findClubRanking ? `${countriEmoji} \`# ${findClubRanking.rank.toString()}\`\n` : ''
 
                 clubDetalles.push({
                     name: `**ㅤ**`,
-                    value: `<:CoronaAzulao:1237349756347613185> **[${club.name}](https://brawltime.ninja/club/${doc.ClubTag.replace('#', '')})**\n${clubRanking}<:trophy:1178100595530420355> \`${club.trophies.toLocaleString()}\`\n<:Presi:1202692085019447377> ${presiName !== 'No disponible' ? `[${presiName}](https://brawltime.ninja/profile/${presiTag})` : presiName}\n<:trofeosmasaltos:1178100593181601812> \`${club.requiredTrophies.toLocaleString()}\`\n<:MiembrosClan:1202693897306898492> \`${club.members.length}\`\n${tipo}`,
+                    value: `<:CoronaAzulao:1237349756347613185> **[${club.name}](https://brawltime.ninja/club/${doc.ClubTag.replace('#', '')})**\n<:trophy:1178100595530420355> \`${club.trophies.toLocaleString()}\`\n${clubRanking}<:Presi:1202692085019447377> ${presiName !== 'No disponible' ? `[${presiName}](https://brawltime.ninja/profile/${presiTag})` : presiName}\n<:trofeosmasaltos:1178100593181601812> \`${club.requiredTrophies.toLocaleString()}\`\n<:MiembrosClan:1202693897306898492> \`${club.members.length}\`\n${tipo}`,
                     inline: true,
                     trophies: club.trophies // Añadir la cantidad de trofeos para la ordenación
                 });
