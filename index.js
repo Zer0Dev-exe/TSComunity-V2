@@ -431,6 +431,7 @@ setInterval(async () => {
             const countries = require('./json/countries.json')
             const countri = doc.Region ? doc.Region : 'España'
             const countriCode = countries[countri].codigo
+            const countriEmoji = countries[countri].emoji
             const clubTag = doc.ClubTag
 
             const url = `https://api.brawlstars.com/v1/clubs/%23${doc.ClubTag}`;
