@@ -428,6 +428,11 @@ setInterval(async () => {
         const totalClubes = data.length;
 
         for (const doc of data) {
+            const countries = require('./json/countries.json')
+            const countri = doc.Region ? doc.Region : 'España'
+            const countriCode = countries[countri].codigo
+            const clubTag = doc.ClubTag
+
             const url = `https://api.brawlstars.com/v1/clubs/%23${doc.ClubTag}`;
             try {
                 const response = await axios.get(url, {
@@ -436,6 +441,13 @@ setInterval(async () => {
                         Accept: "application/json",
                     },
                 });
+                const responseRankings = await axios.get(`https://api.brawlstars.com/v1/rankings/${countriCode}/clubs`, {
+                    headers: {
+                    Authorization: `Bearer ${token}`,
+                    Accept: "application/json",
+                    },
+                })
+
                 const club = response.data;
                 totalCopas += club.trophies;
                 totalMiembros += club.members.length;
@@ -452,9 +464,14 @@ setInterval(async () => {
                 if (tipo === "open") tipo = "<:AbiertoBN:1333582488160833636> \`Abierto\`";
                 if (tipo === "closed") tipo = "<:CerradoBN:1333582484629094400> \`Cerrado\`";
 
+                const rankings = responseRankings.data
+                const rankingClubs = rankings.items
+                const findClubRanking = rankingClubs.find((c) => c.tag === `#${clubTag}`)
+                const clubRanking = findClubRanking ? `${countriEmoji} \`#${findClubRanking.rank.toString()}\`\n` : ''
+
                 clubDetalles.push({
                     name: `**ㅤ**`,
-                    value: `<:CoronaAzulao:1237349756347613185> **[${club.name}](https://brawltime.ninja/club/${doc.ClubTag.replace('#', '')})**\n<:trophy:1178100595530420355> \`${club.trophies.toLocaleString()}\`\n<:Presi:1202692085019447377> ${presiName !== 'No disponible' ? `[${presiName}](https://brawltime.ninja/profile/${presiTag})` : presiName}\n<:trofeosmasaltos:1178100593181601812> \`${club.requiredTrophies.toLocaleString()}\`\n<:MiembrosClan:1202693897306898492> \`${club.members.length}\`\n${tipo}`,
+                    value: `<:CoronaAzulao:1237349756347613185> **[${club.name}](https://brawltime.ninja/club/${doc.ClubTag.replace('#', '')})**\n${clubRanking}<:trophy:1178100595530420355> \`${club.trophies.toLocaleString()}\`\n<:Presi:1202692085019447377> ${presiName !== 'No disponible' ? `[${presiName}](https://brawltime.ninja/profile/${presiTag})` : presiName}\n<:trofeosmasaltos:1178100593181601812> \`${club.requiredTrophies.toLocaleString()}\`\n<:MiembrosClan:1202693897306898492> \`${club.members.length}\`\n${tipo}`,
                     inline: true,
                     trophies: club.trophies // Añadir la cantidad de trofeos para la ordenación
                 });
