@@ -468,7 +468,7 @@ setInterval(async () => {
                 const rankings = responseRankings.data
                 const rankingClubs = rankings.items
                 const findClubRanking = rankingClubs.find((c) => c.tag === `#${clubTag}`)
-                const clubRanking = findClubRanking ? `${countriEmoji} \`# ${findClubRanking.rank.toString()}\`\n` : ''
+                const clubRanking = findClubRanking ? `${countriEmoji} \`#${findClubRanking.rank.toString()}\`\n` : ''
 
                 clubDetalles.push({
                     name: `**ㅤ**`,
