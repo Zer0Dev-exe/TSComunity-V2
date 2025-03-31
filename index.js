@@ -468,7 +468,7 @@ setInterval(async () => {
                 const rankings = responseRankings.data
                 const rankingClubs = rankings.items
                 const findClubRanking = rankingClubs.find((c) => c.tag === `#${clubTag}`)
-                const clubRanking = findClubRanking ? `${countriEmoji} \`# ${findClubRanking.rank.toString()}\`\n` : ''
+                const clubRanking = findClubRanking ? `${countriEmoji} \`#${findClubRanking.rank.toString()}\`\n` : ''
 
                 clubDetalles.push({
                     name: `**ㅤ**`,
@@ -609,7 +609,7 @@ timeStampt.edit(`
 > *Asegurate de que en los anteriores 2 mensajes nadie haya publicado la plantilla.*
     
 ## Servidores donde se puede promocionar
-> [Braulio estrellas en castellano - Brawl Stars](https://discord.gg/brawl-spain-871813129414271006)
+> [Brawl Monkey Kingdom](https://discord.gg/hzm3QeuynD)
 > [GuilleVGX - Brawl Stars](https://discord.gg/77sQHhmZkm)
 > [GoDeik TEAM](https://discord.gg/h2mSWgcMag)
 > [Templo de los ricochets (iKaoss community)](https://discord.gg/6VhNHVMgcr)
@@ -617,6 +617,7 @@ timeStampt.edit(`
 > [Brawl Stars Fénix](https://discord.gg/T2QCXxXX8a)
 > [ELPIPEKAS - BRAWL STARS](https://discord.gg/pPpdwrMuBk)
 > [Pizza BS](https://discord.gg/jcmeX4bS9g)
+> [Cats World BS](https://discord.gg/n6qqa5CyN7)
 > [Team Turtle](https://discord.gg/jg9Yet8pNW)
 > [BrawlStation](https://discord.gg/qfWKdvVPjs)
     
@@ -824,3 +825,34 @@ async function borrarMensajes() {
     }
 }
 borrarMensajes()
+
+client.on('messageCreate', async message => {
+    if (message.author.bot) return
+
+    const data = require('./Esquemas/asociacionesSchema.js')
+
+    try {
+        const documentos = await data.find({})
+        const doc = documentos.find(documento => documento.Canal === message.channel.id)
+        if (!doc) return
+
+        const renovacionTimestamp = Math.floor((Date.now() + doc.Renovacion * 86400000) / 1000)
+        const representante = doc.Representante
+        const asignado = doc.Asignado
+
+        const canal = message.channel
+
+        const embed = new EmbedBuilder()
+            .setColor('Blue')
+            .setTitle(`Nueva Renovación con`)
+            .addFields(
+                { name: '📅 Renovación', value: `<t:${renovacionTimestamp}:d> (<t:${renovacionTimestamp}:R>)`, inline: true },
+                { name: '👤 Representante', value: `<@${representante}>`, inline: true },
+                { name: '🔧 Staff Encargado', value: `<@${asignado}>`, inline: true }
+            )
+
+        message.channel.send({ embeds: [embed] })
+    } catch (error) {
+        console.error('Error al consultar la base de datos:', error)
+    }
+})
