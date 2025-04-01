@@ -855,6 +855,9 @@ client.on('messageCreate', async message => {
         } else {
             staffData.create({ ID: asignado, Renovaciones: 1 })
         }
+        const ranking = await staffData.find().sort({ Renovaciones: -1 })
+
+        const posicion = ranking.findIndex(user => user.ID === asignado) + 1
 
         const statsStaff = await staffData.findOne({ ID: asignado})
 
@@ -864,7 +867,7 @@ client.on('messageCreate', async message => {
                 name: 'Nueva Renovación de Asociación Realizada', 
                 iconURL: guild.iconURL(),
             })
-            .setDescription(`> ୧📅୨ **Renovación • <t:${renovacionTimestamp}:T>, <t:${renovacionTimestamp}:R>**\n> ୧👤﻿୨ **Representante • <@${representante}>**\n> ୧🔧୨ **Encargado • <@${asignado}>**\n### ✦₊⁺⋆｡︵︵୧ ``D`` ``A`` ``T`` ``O`` ``S`` ୨ ︵︵｡⋆⁺₊✦\n> ୧<:emoji_162:1339643027525861467>୨ **Renovaciones Totales • ${statsStaff.Renovaciones}**\n> ୧<:ranking:1339643077824086108>୨ **Rango Total • #6**\n\n***Para evitar este ping añadete el rol <@&1219196487011930194> en ⁠ <id:customize>.***`)
+            .setDescription(`> ୧📅୨ **Renovación • <t:${renovacionTimestamp}:T>, <t:${renovacionTimestamp}:R>**\n> ୧👤﻿୨ **Representante • <@${representante}>**\n> ୧🔧୨ **Encargado • <@${asignado}>**\n### ✦₊⁺⋆｡︵︵୧ ``D`` ``A`` ``T`` ``O`` ``S`` ୨ ︵︵｡⋆⁺₊✦\n> ୧<:emoji_162:1339643027525861467>୨ **Renovaciones Totales • ${statsStaff.Renovaciones}**\n> ୧<:ranking:1339643077824086108>୨ **Rango Total • #${posicion}**\n\n***Para evitar este ping añadete el rol <@&1219196487011930194> en ⁠ <id:customize>.***`)
             .setFooter({ 
                 name: `Renovación con ${server}`, 
             })
