@@ -847,11 +847,11 @@ client.on('messageCreate', async message => {
 
         const staffData = require('./Esqueams/staffStats.js')
 
-        const doc = await staffData.findOne({ ID: asignado})
+        const staffDoc = await staffData.findOne({ ID: asignado})
 
-        if (doc) {
+        if (staffDoc) {
             doc.Renovaciones = staffData.Renovaciones + 1
-            await doc.save()
+            await staffDoc.save()
         } else {
             staffData.create({ ID: asignado, Renovaciones: 1 })
         }
