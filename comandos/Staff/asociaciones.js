@@ -305,10 +305,10 @@ module.exports = {
                 .setDescription(`\` ## - Puntos - Usuario                     \`\n${topText}`)
 
             // Enviar el embed al canal
-            interaction.reply({ embeds: [embed] });
+            return interaction.reply({ embeds: [embed] });
         } catch (error) {
             console.error('Error al obtener el ranking:', error);
-            interaction.reply('Hubo un error al obtener el ranking de renovaciones.');
+            return interaction.reply('Hubo un error al obtener el ranking de renovaciones.');
         }
 
         }
