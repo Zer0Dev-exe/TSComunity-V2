@@ -89,6 +89,10 @@ module.exports = {
         subcommand
           .setName("lista")
           .setDescription("Muestra todos los canales asociados en el servidor.")
+      ).addSubcommand((subcommand) =>
+        subcommand
+          .setName("leaderboard")
+          .setDescription("Leaderbaord de renovación de asociciones.")
       ),
   
     async execute(interaction) {
@@ -275,6 +279,38 @@ module.exports = {
             }
         
             return interaction.reply({ embeds });
+        }
+
+        case 'leaderboard': {
+        const staffData = require('../../Esquemas/staffStats.js'); // Cargar el esquema de staff
+
+        try {
+            // Buscar todos los documentos de usuarios y ordenarlos por renovaciones en orden descendente
+            const ranking = await staffData.find().sort({ Renovaciones: -1 }); // Limitar a los primeros 10
+
+            if (ranking.length === 0) {
+                return interaction.reply('No hay datos de renovaciones disponibles.');
+            }
+
+            // Construir una cadena de texto con los primeros 10 puestos
+            let topText = '';
+            ranking.forEach((user, index) => {
+                topText += `\`${(index + 1).toString().padStart(3, '0')} -${user.Renovaciones.toString().padStart(7, ' ')} → \`<@${user.ID}>\n`
+            });
+
+            // Crear el embed con la información
+            const embed = new EmbedBuilder()
+                .setColor('Blue')
+                .setTitle('Top de Renovaciones')
+                .setDescription(`\` ## - Puntos - Usuario                     \`\n${topText}`)
+
+            // Enviar el embed al canal
+            return interaction.reply({ embeds: [embed] });
+        } catch (error) {
+            console.error('Error al obtener el ranking:', error);
+            return interaction.reply('Hubo un error al obtener el ranking de renovaciones.');
+        }
+
         }
 
         default:
