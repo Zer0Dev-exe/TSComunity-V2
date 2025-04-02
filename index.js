@@ -869,7 +869,7 @@ client.on('messageCreate', async message => {
                 iconURL: guild.iconURL(),
             })
             .setDescription(`> ୧📅୨ **Renovación • <t:${renovacionTimestamp}:T>, <t:${renovacionTimestamp}:R>**\n> ୧👤﻿୨ **Representante • <@${representante}>**\n> ୧🔧୨ **Encargado • <@${asignado}>**\n### ✦₊⁺⋆｡︵︵୧ ``D`` ``A`` ``T`` ``O`` ``S`` ୨ ︵︵｡⋆⁺₊✦\n> ୧<:emoji_162:1339643027525861467>୨ **Renovaciones Totales • ${staffDoc.Renovaciones}**\n> ୧<:ranking:1339643077824086108>୨ **Rango Total • #${posicion}**\n\n***Para evitar este ping añadete el rol <@&1219196487011930194> en ⁠ <id:customize>.***`)
-            .setFooter({ text: `Renovación con ${server}` });
+            .setFooter({ text: `Renovación con ${server}` })
             .setTimestamp()
 
         message.channel.send({ embeds: [embed] });
