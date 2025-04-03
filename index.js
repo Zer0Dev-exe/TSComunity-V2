@@ -862,6 +862,15 @@ client.on('messageCreate', async message => {
         const ranking = await staffData.find().sort({ Renovaciones: -1 });
         const posicion = ranking.findIndex(user => user.ID === asignado) + 1;
 
+
+        console.log("Valores antes del embed:");
+        console.log("Renovación Timestamp:", renovacionTimestamp);
+        console.log("Representante:", representante);
+        console.log("Asignado:", asignado);
+        console.log("StaffDoc:", staffDoc);
+        console.log("Posición:", posicion);
+
+
         const embed = new EmbedBuilder()
             .setColor('Blue')
             .setAuthor({ 
