@@ -473,8 +473,8 @@ setInterval(async () => {
 
 
                 const globalRankings = responseGlobalRankings.data
-                const globalRankings = globalRankings.items
-                const globalFindClubRanking = globalRankings.find((c) => c.tag === `#${clubTag}`)
+                const globalRankingsV = globalRankings.items
+                const globalFindClubRanking = globalRankingsV.find((c) => c.tag === `#${clubTag}`)
                 const globalclubRanking = globalFindClubRanking ? `🌍 \`#${globalFindClubRanking.rank.toString()}\` ` : ''
 
 
