@@ -347,6 +347,7 @@ client.on('interactionCreate', async interaction => {
                 { name: 'Nota Extra', value: `> ${formattedNote}` }
             )
             .setFooter({ text: `Mensaje enviado desde ${guild.name}`, iconURL: guild.iconURL() })
+            .setTimestamp()
             .setColor(postInfo.color)
             .setThumbnail(guild.iconURL())
 
@@ -447,6 +448,12 @@ setInterval(async () => {
                     Accept: "application/json",
                     },
                 })
+                const responseGlobalRankings = await axios.get(`https://api.brawlstars.com/v1/rankings/global/clubs`, {
+                    headers: {
+                    Authorization: `Bearer ${token}`,
+                    Accept: "application/json",
+                    },
+                })
 
                 const club = response.data;
                 totalCopas += club.trophies;
@@ -464,6 +471,13 @@ setInterval(async () => {
                 if (tipo === "open") tipo = "<:AbiertoBN:1333582488160833636> \`Abierto\`";
                 if (tipo === "closed") tipo = "<:CerradoBN:1333582484629094400> \`Cerrado\`";
 
+
+                const globalRankings = responseGlobalRankings.data
+                const globalRankings = globalRankings.items
+                const globalFindClubRanking = globalRankings.find((c) => c.tag === `#${clubTag}`)
+                const globalclubRanking = globalFindClubRanking ? `🌍 \`#${globalFindClubRanking.rank.toString()}\` ` : ''
+
+
                 const rankings = responseRankings.data
                 const rankingClubs = rankings.items
                 const findClubRanking = rankingClubs.find((c) => c.tag === `#${clubTag}`)
@@ -471,7 +485,7 @@ setInterval(async () => {
 
                 clubDetalles.push({
                     name: `**ㅤ**`,
-                    value: `<:CoronaAzulao:1237349756347613185> **[${club.name}](https://brawltime.ninja/club/${doc.ClubTag.replace('#', '')})**\n<:trophy:1178100595530420355> \`${club.trophies.toLocaleString()}\`\n${clubRanking}<:Presi:1202692085019447377> ${presiName !== 'No disponible' ? `[${presiName}](https://brawltime.ninja/profile/${presiTag})` : presiName}\n<:trofeosmasaltos:1178100593181601812> \`${club.requiredTrophies.toLocaleString()}\`\n<:MiembrosClan:1202693897306898492> \`${club.members.length}\`\n${tipo}`,
+                    value: `<:CoronaAzulao:1237349756347613185> **[${club.name}](https://brawltime.ninja/club/${doc.ClubTag.replace('#', '')})**\n<:trophy:1178100595530420355> \`${club.trophies.toLocaleString()}\`\n${globalclubRanking}${clubRanking}<:Presi:1202692085019447377> ${presiName !== 'No disponible' ? `[${presiName}](https://brawltime.ninja/profile/${presiTag})` : presiName}\n<:trofeosmasaltos:1178100593181601812> \`${club.requiredTrophies.toLocaleString()}\`\n<:MiembrosClan:1202693897306898492> \`${club.members.length}\`\n${tipo}`,
                     inline: true,
                     trophies: club.trophies // Añadir la cantidad de trofeos para la ordenación
                 });
@@ -861,6 +875,15 @@ client.on('messageCreate', async message => {
         const ranking = await staffData.find().sort({ Renovaciones: -1 });
         const posicion = ranking.findIndex(user => user.ID === asignado) + 1;
 
+
+        console.log("Valores antes del embed:");
+        console.log("Renovación Timestamp:", renovacionTimestamp);
+        console.log("Representante:", representante);
+        console.log("Asignado:", asignado);
+        console.log("StaffDoc:", staffDoc);
+        console.log("Posición:", posicion);
+
+
         const embed = new EmbedBuilder()
             .setColor('Blue')
             .setAuthor({ 
@@ -868,10 +891,55 @@ client.on('messageCreate', async message => {
                 iconURL: guild.iconURL(),
             })
             .setDescription(`> ୧📅୨ **Renovación • <t:${renovacionTimestamp}:T>, <t:${renovacionTimestamp}:R>**\n> ୧👤﻿୨ **Representante • <@${representante}>**\n> ୧🔧୨ **Encargado • <@${asignado}>**\n### ✦₊⁺⋆｡︵︵୧ ``D`` ``A`` ``T`` ``O`` ``S`` ୨ ︵︵｡⋆⁺₊✦\n> ୧<:emoji_162:1339643027525861467>୨ **Renovaciones Totales • ${staffDoc.Renovaciones}**\n> ୧<:ranking:1339643077824086108>୨ **Rango Total • #${posicion}**\n\n***Para evitar este ping añadete el rol <@&1219196487011930194> en ⁠ <id:customize>.***`)
-            .setFooter({ text: `Renovación con ${server}` });
+            .setFooter({ text: `Renovación con ${server}` })
+            .setTimestamp()
 
         message.channel.send({ embeds: [embed] });
     } catch (error) {
         console.error('Error al consultar la base de datos:', error);
     }
 })
+
+const DOUBLE_BOOSTER_ROLE_NAME = 'Doble Booster';
+
+// Mapa temporal para guardar miembros que han boosteado más de una vez
+const boostCountMap = new Map();
+
+
+client.on('guildMemberUpdate', async (oldMember, newMember) => {
+  // Solo proceder si hay cambio en el boost (premiumSince)
+  const oldBoost = oldMember.premiumSince;
+  const newBoost = newMember.premiumSince;
+
+  const hasJustBoosted = !oldBoost && newBoost;
+  const hasJustUnboosted = oldBoost && !newBoost;
+
+  const role = newMember.guild.roles.cache.find(r => r.name === DOUBLE_BOOSTER_ROLE_NAME);
+  if (!role) return console.warn(`❌ Rol "${DOUBLE_BOOSTER_ROLE_NAME}" no encontrado.`);
+
+  if (hasJustBoosted) {
+    const count = boostCountMap.get(newMember.id) || 0;
+    boostCountMap.set(newMember.id, count + 1);
+
+    if (count + 1 >= 2) {
+      try {
+        await newMember.roles.add(role);
+      } catch (err) {
+        console.error('❌ Error al añadir el rol:', err);
+      }
+    }
+  }
+
+  if (hasJustUnboosted) {
+    const count = boostCountMap.get(newMember.id) || 0;
+    boostCountMap.set(newMember.id, count - 1);
+
+    if (count - 1 < 2) {
+      try {
+        await newMember.roles.remove(role);
+      } catch (err) {
+        console.error('❌ Error al quitar el rol:', err);
+      }
+    }
+  }
+});
