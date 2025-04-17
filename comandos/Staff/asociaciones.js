@@ -70,19 +70,31 @@ module.exports = {
       )
       .addSubcommand((subcommand) =>
         subcommand
-          .setName("asignar")
-          .setDescription("Asigna un usuario a un canal.")
-          .addUserOption((option) =>
-            option
-              .setName("usuario")
-              .setDescription("El usuario a asignar.")
-              .setRequired(true)
-          )
+          .setName("editar")
+          .setDescription("Edita una asociación.")
           .addChannelOption((option) =>
             option
               .setName("canal")
-              .setDescription("El canal al que asignar el usuario.")
+              .setDescription("El usuario a asignar.")
               .setRequired(true)
+          )
+          .addUserOption((option) =>
+            option
+              .setName("encargado")
+              .setDescription("El staff asignado al canal.")
+              .setRequired(false)
+          )
+          .addIntegerOption((option) =>
+            option
+              .setName("duracion")
+              .setDescription("Cada cuento se renueva la asocición.")
+              .setRequired(false)
+          )
+          .addUserOption((option) =>
+            option
+              .setName("rerpesentante")
+              .setDescription("El representante de la asociación.")
+              .setRequired(false)
           )
       )
       .addSubcommand((subcommand) =>
@@ -211,28 +223,41 @@ module.exports = {
           });
         }
   
-        case "asignar": {
-          const usuario = interaction.options.getUser("usuario");
-          const canal = interaction.options.getChannel("canal");
+        case "editar": {
+          const canal = interaction.options.getChannel("canal")
+          const encargado = interaction.options.getUser("encargado")
+          const duracion = interaction.options.getInteger("duracion")
+          const representante = interaction.options.getUser("representante")
+
           const data = await Asociacion.findOne({ Canal: canal.id})
-          if(!data) return await interaction.reply('No está guardado este canal en la base de datos, primero usa /asociaciones agregar o agregar-manual')
-          // Actualizar la asociación con el nuevo usuario asignado
+
+          if (!data) return await interaction.reply('No está guardado este canal en la base de datos, primero usa /asociaciones agregar o agregar-manual')
+
           const asociacion = await Asociacion.findOneAndUpdate(
             { Canal: canal.id },
             { Asignado: usuario.id },
-            { new: true } // Devuelve el documento actualizado
-          );
+            { Renovacion: duracion },
+            { Representante: representante.id },
+            { new: true }
+          )
   
           if (!asociacion) {
-            return interaction.reply("No se encontró la asociación para ese canal.");
+            return interaction.reply("No se encontró la asociación para ese canal.")
           }
   
           const embed = new EmbedBuilder()
+          .setTitle('Asociación Editada')
           .setColor('Purple')
-          .setDescription(`Se ha añadido a ${usuario} correctamente el canal ${canal}`)
+          .addFields(
+            { name: 'Canal', value: canal.id, inline: true  },
+            { name: 'Encargado', value: `<@${encargado}>`, inline: true  },
+            { name: 'Renovación', value: duracion, inline: true },
+            { name: 'Reoresentante', value: `<@${representante}>`, inline: true },
+          )
+          
           return interaction.reply(
             { embeds: [embed]}
-          );
+          )
         }
 
         case "lista": {
