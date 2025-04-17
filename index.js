@@ -671,9 +671,9 @@ async function actualizarListaAsociaciones() {
   if (!canal) return;
 
   // IDs de los mensajes a editar
-  const mensaje1_ID = "1340662419999031308";
-  const mensaje2_ID = "1340662444372267029";
-  const mensaje3_ID = "1340662681006374963";
+  const mensaje1_ID = "1361830936366289019";
+  const mensaje2_ID = "1361830947212754947";
+  const mensaje3_ID = "1361830953697284186";
 
   const asociaciones = await Asociacion.find();
   if (asociaciones.length === 0) return;
@@ -792,7 +792,8 @@ async function actualizarListaAsociaciones() {
   }
 }
 
-setInterval(actualizarListaAsociaciones, 120000);
+//setInterval(actualizarListaAsociaciones, 120000);
+setInterval(actualizarListaAsociaciones, 10000);
 
 client.on('interactionCreate', async interaction => {
   if (interaction.isAutocomplete()) {
