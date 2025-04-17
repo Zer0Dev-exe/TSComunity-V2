@@ -1,4 +1,4 @@
-const { SlashCommandBuilder, EmbedBuilder, Guild, ButtonStyle, ActionRowBuilder, ButtonBuilder } = require('discord.js');
+const { SlashCommandBuilder, EmbedBuilder, Guild, ButtonStyle, ActionRowBuilder, ButtonBuilder, PermissionsBitField } = require('discord.js');
 const axios = require('axios');
 const Schema = require('../../Esquemas/clubsSchema.js');
 const apiKey = process.env.BS_APIKEY;
@@ -9,6 +9,7 @@ module.exports = {
   data: new SlashCommandBuilder()
     .setName('clubadmin')
     .setDescription('Comandos para gerentes de Clubes')
+    .setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator)
     .addSubcommandGroup(group => 
       group
         .setName('clubes')
@@ -91,18 +92,11 @@ module.exports = {
 
         if(interaction.options.getSubcommandGroup() === 'clubes') {
             if(interaction.options.getSubcommand() === 'agregar') {
-                // const filtro = interaction.options.getString('pais') || '';
-    
-   				//  // Filtrar las opciones con el valor del filtro
-    			// const opciones = obtenerOpciones(filtro);
-    
-   				//  // Mostrar las opciones filtradas
-   				// await interaction.respond(opciones);
                 
                 const tag = await interaction.options.getString('tag-club');      
                 const alias = await interaction.options.getString('alias');
                 const region = await interaction.options.getString('region');
-                if(!tag.includes('#')) return await interaction.reply({ content: `Este tag no es válido: **${tag}** `});
+                if (!tag.includes('#')) return await interaction.reply({ content: `Este tag no es válido: **${tag}** `});
                 
                 try {
                     const response = await axios.get(`https://api.brawlstars.com/v1/clubs/%23${tag.replace('#', '')}`, {
@@ -112,13 +106,62 @@ module.exports = {
                     });
                     const club = response.data;
 
-                    const rolproximo = interaction.guild.roles.cache.get('1333144904112541846');
-                    //const nuevoRol = await interaction.guild.roles.create({
-                        //name: 🔰 Miembro ${club.name},
-                        //color: 'Blue',
-                        //position: rolproximo.rawPosition + 1,
-                        //permissions: []
-                    //});
+                      const clubName = club.name.replace('TS ', '')
+                      const guild = interaction.guild;
+                  
+                      const nombreRol = `🔰 Miembro ${clubName}`
+                  
+                      const rolesClub = guild.roles.cache
+                      .filter(role => role.name.startsWith('🔰 Miembro'))
+                      .sort((a, b) => a.position - b.position)
+                      const ultimoRolClub = rolesClub.last()
+                      const nuevaPosicion = ultimoRolClub.position + 1
+                  
+                      const nuevoRol = await guild.roles.create({
+                          name: nombreRol,
+                          color: 'Blue',
+                          permissions: [],
+                          position: nuevaPosicion,
+                          reason: `Rol creado para el club TS ${clubName}`
+                      })
+                  
+                      await guild.channels.cache.get('1320856783958441994').permissionOverwrites.edit(nuevoRol, {
+                        ViewChannel: true,
+                        SendMessages: false,
+                        ReadMessageHistory: true
+                      })
+                  
+                      await guild.channels.cache.get('1335991815026905159').permissionOverwrites.edit(nuevoRol, {
+                          ViewChannel: true,
+                          SendMessages: false,
+                          ReadMessageHistory: true
+                        })
+                  
+                      await guild.channels.cache.get('1238144649592307732').permissionOverwrites.edit(nuevoRol, {
+                          ViewChannel: true,
+                          SendMessages: false,
+                          ReadMessageHistory: true,
+                          AddReactions: true
+                      })
+                  
+                      await guild.channels.cache.get('1238145240209166450').permissionOverwrites.edit(nuevoRol, {
+                          ViewChannel: true,
+                          SendMessages: true,
+                          ReadMessageHistory: true,
+                          AddReactions: true,
+                          SendTTSMessages: true,
+                          EmbedLinks: true,
+                          AttachFiles: true,
+                          UseExternalEmojis: true,
+                          UseExternalStickers: true,
+                          UseApplicationCommands: true
+                      })
+                  
+                      await guild.channels.cache.get('1238155718780129311').permissionOverwrites.edit(nuevoRol, {
+                          ViewChannel: true,
+                          SendMessages: false,
+                          ReadMessageHistory: true
+                        })
 
                     const data = await Schema.findOne({ ClubTag: tag.replace('#', '') });
                     if(data) return await interaction.reply('Este tag ya estaba guardado');

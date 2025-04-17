@@ -70,27 +70,27 @@ module.exports = {
 
         if (global && local) {
             if (!region) return interaction.reply('Para usar la opción de top local debes añadir una región')
-            top = `|${global}🌍${local}${countriEmoji}`
+            tops = `|${global}🌍${local}${countriEmoji}`
         } else if (global) {
-            top = `|${global}🌍$`
+            tops = `|${global}🌍$`
         } else if (local) {
             if (!region) return interaction.reply('Para usar la opción de top local debes añadir una región')
-            top = `|${local}${countriEmoji}`
+            tops = `|${local}${countriEmoji}`
         } else {
-            top = ''
+            tops = ''
         }
 
         // Determina la respuesta según los argumentos proporcionados
         let respuesta;
 
         if (nombre1 && nombre2) {
-            respuesta = `<c5>TS Comunity</c>⚔️|ᴅɪꜱᴄ➜8nu3ZdDkp7 <c3>▲${nombre1}</c>|<c9>▼${nombre2}</c>${copasOutput}${tops}`; 
+            respuesta = `<c5>TS Comunity</c>⚔️|ᴅɪꜱᴄ➜8nu3ZdDkp7 <c3>▲${nombre1}</c>|<c9>▼${nombre2}</c>${copasOutput}${tops}`
         } else if (nombre1) {
-            respuesta = `<c5>TS Comunity</c>⚔️|ᴅɪꜱᴄ➜8nu3ZdDkp7 <c3>▲${nombre1}</c>${copasOutput}${tops}`;
+            respuesta = `<c5>TS Comunity</c>⚔️|ᴅɪꜱᴄ➜8nu3ZdDkp7 <c3>▲${nombre1}</c>${copasOutput}${tops}`
         } else if (nombre2) {
-            respuesta = `<c5>TS Comunity</c>⚔️|ᴅɪꜱᴄ➜8nu3ZdDkp7 <c9>▼${nombre2}</c>${copasOutput}${tops}`;
+            respuesta = `<c5>TS Comunity</c>⚔️|ᴅɪꜱᴄ➜8nu3ZdDkp7 <c9>▼${nombre2}</c>${copasOutput}${tops}`
         } else {
-            respuesta = 'Por favor, proporciona al menos un nombre.';
+            respuesta = 'Por favor, proporciona al menos un nombre.'
         }
 
         // Responde al usuario con un bloque de código

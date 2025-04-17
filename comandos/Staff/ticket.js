@@ -6,6 +6,7 @@ module.exports = {
     data: new SlashCommandBuilder()
         .setName('ticket')
         .setDescription('Comandos de ticket')
+        .setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator)
         .addSubcommand(subcommand =>
             subcommand
             .setName('cerrar')

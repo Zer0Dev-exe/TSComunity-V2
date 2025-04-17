@@ -70,19 +70,31 @@ module.exports = {
       )
       .addSubcommand((subcommand) =>
         subcommand
-          .setName("asignar")
-          .setDescription("Asigna un usuario a un canal.")
-          .addUserOption((option) =>
-            option
-              .setName("usuario")
-              .setDescription("El usuario a asignar.")
-              .setRequired(true)
-          )
+          .setName("editar")
+          .setDescription("Edita una asociación.")
           .addChannelOption((option) =>
             option
               .setName("canal")
-              .setDescription("El canal al que asignar el usuario.")
+              .setDescription("El usuario a asignar.")
               .setRequired(true)
+          )
+          .addUserOption((option) =>
+            option
+              .setName("encargado")
+              .setDescription("El staff asignado al canal.")
+              .setRequired(false)
+          )
+          .addIntegerOption((option) =>
+            option
+              .setName("duracion")
+              .setDescription("Cada cuento se renueva la asocición.")
+              .setRequired(false)
+          )
+          .addUserOption((option) =>
+            option
+              .setName("rerpesentante")
+              .setDescription("El representante de la asociación.")
+              .setRequired(false)
           )
       )
       .addSubcommand((subcommand) =>
@@ -93,6 +105,10 @@ module.exports = {
         subcommand
           .setName("leaderboard")
           .setDescription("Leaderbaord de renovación de asociciones.")
+      ).addSubcommand((subcommand) =>
+        subcommand
+          .setName("reset-puntos")
+          .setDescription("Resetear los puntos de asociciones.")
       ),
   
     async execute(interaction) {
@@ -100,6 +116,20 @@ module.exports = {
   
       switch (subcommand) {
         case "agregar": {
+
+          const ROLES_PERMITIDOS = ['1106553480803516437', '1107345436492185753', '1106553536839422022' '1202685031219200040']
+
+          const tienePermiso = interaction.member.roles.cache.some(role =>
+            ROLES_PERMITIDOS.includes(role.id)
+          );
+    
+          if (!tienePermiso) {
+            return interaction.reply({
+             content: '🚫 No tienes permiso para usar este comando.',
+              ephemeral: true
+            });
+          }
+
           const nombre = interaction.options.getString("nombre");
           const categoria = interaction.options.getChannel("categoria");
           const renovacion = interaction.options.getNumber("renovacion-dias");
@@ -138,6 +168,20 @@ module.exports = {
         }
   
         case "remover": {
+
+          const ROLES_PERMITIDOS = ['1106553480803516437', '1107345436492185753', '1106553536839422022' '1202685031219200040']
+
+          const tienePermiso = interaction.member.roles.cache.some(role =>
+            ROLES_PERMITIDOS.includes(role.id)
+          );
+    
+          if (!tienePermiso) {
+            return interaction.reply({
+             content: '🚫 No tienes permiso para usar este comando.',
+              ephemeral: true
+            });
+          }
+
           const canal = interaction.options.getChannel("canal");
   
           const resultado = await Asociacion.deleteOne({
@@ -152,6 +196,20 @@ module.exports = {
         }
 
         case "tuyas": {
+
+          const ROLES_PERMITIDOS = ['1106553480803516437', '1107345436492185753', '1106553536839422022' '1202685031219200040', '959153630328528976']
+
+          const tienePermiso = interaction.member.roles.cache.some(role =>
+            ROLES_PERMITIDOS.includes(role.id)
+          );
+    
+          if (!tienePermiso) {
+            return interaction.reply({
+             content: '🚫 No tienes permiso para usar este comando.',
+              ephemeral: true
+            });
+          }
+
             const asignado = interaction.user.id;
             const asociaciones = await Asociacion.find({ Asignado: asignado });
 
@@ -176,8 +234,21 @@ module.exports = {
             return interaction.reply({ embeds: [embed] });
         }
 
-  
         case "agregar-manual": {
+
+          const ROLES_PERMITIDOS = ['1106553480803516437', '1107345436492185753', '1106553536839422022' '1202685031219200040']
+
+          const tienePermiso = interaction.member.roles.cache.some(role =>
+            ROLES_PERMITIDOS.includes(role.id)
+          );
+    
+          if (!tienePermiso) {
+            return interaction.reply({
+             content: '🚫 No tienes permiso para usar este comando.',
+              ephemeral: true
+            });
+          }
+
           const canal = interaction.options.getChannel("canal");
           const renovacion = interaction.options.getNumber("renovacion-dias");
           const representante = interaction.options.getUser("representante");
@@ -211,31 +282,72 @@ module.exports = {
           });
         }
   
-        case "asignar": {
-          const usuario = interaction.options.getUser("usuario");
-          const canal = interaction.options.getChannel("canal");
+        case "editar": {
+
+          const ROLES_PERMITIDOS = ['1106553480803516437', '1107345436492185753', '1106553536839422022' '1202685031219200040']
+
+          const tienePermiso = interaction.member.roles.cache.some(role =>
+            ROLES_PERMITIDOS.includes(role.id)
+          );
+    
+          if (!tienePermiso) {
+            return interaction.reply({
+             content: '🚫 No tienes permiso para usar este comando.',
+              ephemeral: true
+            });
+          }
+
+          const canal = interaction.options.getChannel("canal")
+          const encargado = interaction.options.getUser("encargado")
+          const duracion = interaction.options.getInteger("duracion")
+          const representante = interaction.options.getUser("representante")
+
           const data = await Asociacion.findOne({ Canal: canal.id})
-          if(!data) return await interaction.reply('No está guardado este canal en la base de datos, primero usa /asociaciones agregar o agregar-manual')
-          // Actualizar la asociación con el nuevo usuario asignado
+
+          if (!data) return await interaction.reply('No está guardado este canal en la base de datos, primero usa /asociaciones agregar o agregar-manual')
+
           const asociacion = await Asociacion.findOneAndUpdate(
             { Canal: canal.id },
             { Asignado: usuario.id },
-            { new: true } // Devuelve el documento actualizado
-          );
+            { Renovacion: duracion },
+            { Representante: representante.id },
+            { new: true }
+          )
   
           if (!asociacion) {
-            return interaction.reply("No se encontró la asociación para ese canal.");
+            return interaction.reply("No se encontró la asociación para ese canal.")
           }
   
           const embed = new EmbedBuilder()
+          .setTitle('Asociación Editada')
           .setColor('Purple')
-          .setDescription(`Se ha añadido a ${usuario} correctamente el canal ${canal}`)
+          .addFields(
+            { name: 'Canal', value: canal.id, inline: true  },
+            { name: 'Encargado', value: `<@${encargado}>`, inline: true  },
+            { name: 'Renovación', value: duracion, inline: true },
+            { name: 'Reoresentante', value: `<@${representante}>`, inline: true },
+          )
+
           return interaction.reply(
             { embeds: [embed]}
-          );
+          )
         }
 
         case "lista": {
+
+          const ROLES_PERMITIDOS = ['1106553480803516437', '1107345436492185753', '1106553536839422022' '1202685031219200040', '959153630328528976']
+
+          const tienePermiso = interaction.member.roles.cache.some(role =>
+            ROLES_PERMITIDOS.includes(role.id)
+          );
+    
+          if (!tienePermiso) {
+            return interaction.reply({
+             content: '🚫 No tienes permiso para usar este comando.',
+              ephemeral: true
+            });
+          }
+
             const asociaciones = await Asociacion.find();
         
             if (asociaciones.length === 0) {
@@ -282,6 +394,20 @@ module.exports = {
         }
 
         case 'leaderboard': {
+
+          const ROLES_PERMITIDOS = ['1106553480803516437', '1107345436492185753', '1106553536839422022' '1202685031219200040', '959153630328528976']
+
+          const tienePermiso = interaction.member.roles.cache.some(role =>
+            ROLES_PERMITIDOS.includes(role.id)
+          );
+    
+          if (!tienePermiso) {
+            return interaction.reply({
+             content: '🚫 No tienes permiso para usar este comando.',
+              ephemeral: true
+            });
+          }
+
         const staffData = require('../../Esquemas/staffStats.js'); // Cargar el esquema de staff
 
         try {
@@ -295,8 +421,10 @@ module.exports = {
             // Construir una cadena de texto con los primeros 10 puestos
             let topText = '';
             ranking.forEach((user, index) => {
+              if (user.ID) {
                 topText += `\`${(index + 1).toString().padStart(3, '0')} -${user.Renovaciones.toString().padStart(7, ' ')} → \`<@${user.ID}>\n`
-            });
+              }
+            })
 
             // Crear el embed con la información
             const embed = new EmbedBuilder()
@@ -311,7 +439,40 @@ module.exports = {
             return interaction.reply('Hubo un error al obtener el ranking de renovaciones.');
         }
 
-        }
+        } case 'reset-puntos': {
+
+          const ROLES_PERMITIDOS2 = ['1106553480803516437', '1107345436492185753']; // IDs de roles permitidos
+
+          const tienePermiso2 = interaction.member.roles.cache.some(role =>
+            ROLES_PERMITIDOS2.includes(role.id)
+          );
+        
+          if (!tienePermiso2) {
+            return interaction.reply({
+              content: '🚫 No tienes permiso para usar este comando.',
+              ephemeral: true
+            });
+          }
+
+
+          const staffData = require('../../Esquemas/staffStats.js'); // Cargar el esquema de staff
+      
+          try {
+              // Buscar todos los usuarios
+              const usuarios = await staffData.find();
+      
+              // Recorrer todos los usuarios y resetear las renovaciones
+              await Promise.all(usuarios.map(async (usuario) => {
+                  usuario.Renovaciones = 0; // Resetear las renovaciones
+                  await usuario.save(); // Guardar el cambio
+              }));
+      
+              return interaction.reply('Las renovaciones han sido reseteadas para todos los usuarios.');
+          } catch (error) {
+              console.error('Error al resetear las renovaciones:', error);
+              return interaction.reply('Hubo un error al intentar resetear las renovaciones.');
+          }
+      }
 
         default:
           return interaction.reply("Comando no reconocido.");
