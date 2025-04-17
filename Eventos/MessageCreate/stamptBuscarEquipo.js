@@ -1,4 +1,8 @@
-const { EmbedBuilder } = require("discord.js");
+const {
+  Events,
+  EmbedBuilder
+} = require("discord.js");
+
 const fs = require("fs");
 
 let lastMsgId = null; // Store the last message ID in memory

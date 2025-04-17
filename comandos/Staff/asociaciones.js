@@ -109,6 +109,19 @@ module.exports = {
   
     async execute(interaction) {
       const subcommand = interaction.options.getSubcommand();
+
+      const ROLES_PERMITIDOS = ['1106553480803516437', '1107345436492185753', '1106553536839422022' '1202685031219200040', '959153630328528976']
+
+      const tienePermiso = interaction.member.roles.cache.some(role =>
+        ROLES_PERMITIDOS.includes(role.id)
+      );
+
+      if (!tienePermiso) {
+        return interaction.reply({
+         content: '🚫 No tienes permiso para usar este comando.',
+          ephemeral: true
+        });
+      }
   
       switch (subcommand) {
         case "agregar": {
@@ -254,7 +267,7 @@ module.exports = {
             { name: 'Renovación', value: duracion, inline: true },
             { name: 'Reoresentante', value: `<@${representante}>`, inline: true },
           )
-          
+
           return interaction.reply(
             { embeds: [embed]}
           )
@@ -320,8 +333,10 @@ module.exports = {
             // Construir una cadena de texto con los primeros 10 puestos
             let topText = '';
             ranking.forEach((user, index) => {
+              if (user.ID) {
                 topText += `\`${(index + 1).toString().padStart(3, '0')} -${user.Renovaciones.toString().padStart(7, ' ')} → \`<@${user.ID}>\n`
-            });
+              }
+            })
 
             // Crear el embed con la información
             const embed = new EmbedBuilder()
@@ -336,7 +351,40 @@ module.exports = {
             return interaction.reply('Hubo un error al obtener el ranking de renovaciones.');
         }
 
-        }
+        } case 'reset-renovaciones': {
+
+          const ROLES_PERMITIDOS2 = ['1106553480803516437', '1107345436492185753']; // IDs de roles permitidos
+
+          const tienePermiso2 = interaction.member.roles.cache.some(role =>
+            ROLES_PERMITIDOS2.includes(role.id)
+          );
+        
+          if (!tienePermiso2) {
+            return interaction.reply({
+              content: '🚫 No tienes permiso para usar este comando.',
+              ephemeral: true
+            });
+          }
+
+
+          const staffData = require('../../Esquemas/staffStats.js'); // Cargar el esquema de staff
+      
+          try {
+              // Buscar todos los usuarios
+              const usuarios = await staffData.find();
+      
+              // Recorrer todos los usuarios y resetear las renovaciones
+              await Promise.all(usuarios.map(async (usuario) => {
+                  usuario.Renovaciones = 0; // Resetear las renovaciones
+                  await usuario.save(); // Guardar el cambio
+              }));
+      
+              return interaction.reply('Las renovaciones han sido reseteadas para todos los usuarios.');
+          } catch (error) {
+              console.error('Error al resetear las renovaciones:', error);
+              return interaction.reply('Hubo un error al intentar resetear las renovaciones.');
+          }
+      }
 
         default:
           return interaction.reply("Comando no reconocido.");
