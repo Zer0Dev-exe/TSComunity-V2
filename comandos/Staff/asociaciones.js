@@ -105,26 +105,31 @@ module.exports = {
         subcommand
           .setName("leaderboard")
           .setDescription("Leaderbaord de renovación de asociciones.")
+      ).addSubcommand((subcommand) =>
+        subcommand
+          .setName("reset-puntos")
+          .setDescription("Resetear los puntos de asociciones.")
       ),
   
     async execute(interaction) {
       const subcommand = interaction.options.getSubcommand();
-
-      const ROLES_PERMITIDOS = ['1106553480803516437', '1107345436492185753', '1106553536839422022' '1202685031219200040', '959153630328528976']
-
-      const tienePermiso = interaction.member.roles.cache.some(role =>
-        ROLES_PERMITIDOS.includes(role.id)
-      );
-
-      if (!tienePermiso) {
-        return interaction.reply({
-         content: '🚫 No tienes permiso para usar este comando.',
-          ephemeral: true
-        });
-      }
   
       switch (subcommand) {
         case "agregar": {
+
+          const ROLES_PERMITIDOS = ['1106553480803516437', '1107345436492185753', '1106553536839422022' '1202685031219200040']
+
+          const tienePermiso = interaction.member.roles.cache.some(role =>
+            ROLES_PERMITIDOS.includes(role.id)
+          );
+    
+          if (!tienePermiso) {
+            return interaction.reply({
+             content: '🚫 No tienes permiso para usar este comando.',
+              ephemeral: true
+            });
+          }
+
           const nombre = interaction.options.getString("nombre");
           const categoria = interaction.options.getChannel("categoria");
           const renovacion = interaction.options.getNumber("renovacion-dias");
@@ -163,6 +168,20 @@ module.exports = {
         }
   
         case "remover": {
+
+          const ROLES_PERMITIDOS = ['1106553480803516437', '1107345436492185753', '1106553536839422022' '1202685031219200040']
+
+          const tienePermiso = interaction.member.roles.cache.some(role =>
+            ROLES_PERMITIDOS.includes(role.id)
+          );
+    
+          if (!tienePermiso) {
+            return interaction.reply({
+             content: '🚫 No tienes permiso para usar este comando.',
+              ephemeral: true
+            });
+          }
+
           const canal = interaction.options.getChannel("canal");
   
           const resultado = await Asociacion.deleteOne({
@@ -177,6 +196,20 @@ module.exports = {
         }
 
         case "tuyas": {
+
+          const ROLES_PERMITIDOS = ['1106553480803516437', '1107345436492185753', '1106553536839422022' '1202685031219200040', '959153630328528976']
+
+          const tienePermiso = interaction.member.roles.cache.some(role =>
+            ROLES_PERMITIDOS.includes(role.id)
+          );
+    
+          if (!tienePermiso) {
+            return interaction.reply({
+             content: '🚫 No tienes permiso para usar este comando.',
+              ephemeral: true
+            });
+          }
+
             const asignado = interaction.user.id;
             const asociaciones = await Asociacion.find({ Asignado: asignado });
 
@@ -201,8 +234,21 @@ module.exports = {
             return interaction.reply({ embeds: [embed] });
         }
 
-  
         case "agregar-manual": {
+
+          const ROLES_PERMITIDOS = ['1106553480803516437', '1107345436492185753', '1106553536839422022' '1202685031219200040']
+
+          const tienePermiso = interaction.member.roles.cache.some(role =>
+            ROLES_PERMITIDOS.includes(role.id)
+          );
+    
+          if (!tienePermiso) {
+            return interaction.reply({
+             content: '🚫 No tienes permiso para usar este comando.',
+              ephemeral: true
+            });
+          }
+
           const canal = interaction.options.getChannel("canal");
           const renovacion = interaction.options.getNumber("renovacion-dias");
           const representante = interaction.options.getUser("representante");
@@ -237,6 +283,20 @@ module.exports = {
         }
   
         case "editar": {
+
+          const ROLES_PERMITIDOS = ['1106553480803516437', '1107345436492185753', '1106553536839422022' '1202685031219200040']
+
+          const tienePermiso = interaction.member.roles.cache.some(role =>
+            ROLES_PERMITIDOS.includes(role.id)
+          );
+    
+          if (!tienePermiso) {
+            return interaction.reply({
+             content: '🚫 No tienes permiso para usar este comando.',
+              ephemeral: true
+            });
+          }
+
           const canal = interaction.options.getChannel("canal")
           const encargado = interaction.options.getUser("encargado")
           const duracion = interaction.options.getInteger("duracion")
@@ -274,6 +334,20 @@ module.exports = {
         }
 
         case "lista": {
+
+          const ROLES_PERMITIDOS = ['1106553480803516437', '1107345436492185753', '1106553536839422022' '1202685031219200040', '959153630328528976']
+
+          const tienePermiso = interaction.member.roles.cache.some(role =>
+            ROLES_PERMITIDOS.includes(role.id)
+          );
+    
+          if (!tienePermiso) {
+            return interaction.reply({
+             content: '🚫 No tienes permiso para usar este comando.',
+              ephemeral: true
+            });
+          }
+
             const asociaciones = await Asociacion.find();
         
             if (asociaciones.length === 0) {
@@ -320,6 +394,20 @@ module.exports = {
         }
 
         case 'leaderboard': {
+
+          const ROLES_PERMITIDOS = ['1106553480803516437', '1107345436492185753', '1106553536839422022' '1202685031219200040', '959153630328528976']
+
+          const tienePermiso = interaction.member.roles.cache.some(role =>
+            ROLES_PERMITIDOS.includes(role.id)
+          );
+    
+          if (!tienePermiso) {
+            return interaction.reply({
+             content: '🚫 No tienes permiso para usar este comando.',
+              ephemeral: true
+            });
+          }
+
         const staffData = require('../../Esquemas/staffStats.js'); // Cargar el esquema de staff
 
         try {
@@ -351,7 +439,7 @@ module.exports = {
             return interaction.reply('Hubo un error al obtener el ranking de renovaciones.');
         }
 
-        } case 'reset-renovaciones': {
+        } case 'reset-puntos': {
 
           const ROLES_PERMITIDOS2 = ['1106553480803516437', '1107345436492185753']; // IDs de roles permitidos
 
