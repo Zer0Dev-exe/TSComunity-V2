@@ -1,7 +1,7 @@
 const { Events, EmbedBuilder, ButtonBuilder, ButtonStyle, ActionRowBuilder } = require("discord.js");
 
-const schemaSc = require('./Esquemas/configuracionSv.js')
-const starData = require('./Esquemas/starboardSchema.js')
+const schemaSc = require('../../Esquemas/configuracionSv.js')
+const starData = require('../../Esquemas/starboardSchema.js')
 
 module.exports = {
   name: "messageReactionAdd",

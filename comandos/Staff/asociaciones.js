@@ -117,7 +117,7 @@ module.exports = {
       switch (subcommand) {
         case "agregar": {
 
-          const ROLES_PERMITIDOS = ['1106553480803516437', '1107345436492185753', '1106553536839422022' '1202685031219200040']
+          const ROLES_PERMITIDOS = ['1106553480803516437', '1107345436492185753', '1106553536839422022', '1202685031219200040']
 
           const tienePermiso = interaction.member.roles.cache.some(role =>
             ROLES_PERMITIDOS.includes(role.id)
@@ -169,7 +169,7 @@ module.exports = {
   
         case "remover": {
 
-          const ROLES_PERMITIDOS = ['1106553480803516437', '1107345436492185753', '1106553536839422022' '1202685031219200040']
+          const ROLES_PERMITIDOS = ['1106553480803516437', '1107345436492185753', '1106553536839422022', '1202685031219200040']
 
           const tienePermiso = interaction.member.roles.cache.some(role =>
             ROLES_PERMITIDOS.includes(role.id)
@@ -197,7 +197,7 @@ module.exports = {
 
         case "tuyas": {
 
-          const ROLES_PERMITIDOS = ['1106553480803516437', '1107345436492185753', '1106553536839422022' '1202685031219200040', '959153630328528976']
+          const ROLES_PERMITIDOS = ['1106553480803516437', '1107345436492185753', '1106553536839422022', '1202685031219200040', '959153630328528976']
 
           const tienePermiso = interaction.member.roles.cache.some(role =>
             ROLES_PERMITIDOS.includes(role.id)
@@ -236,7 +236,7 @@ module.exports = {
 
         case "agregar-manual": {
 
-          const ROLES_PERMITIDOS = ['1106553480803516437', '1107345436492185753', '1106553536839422022' '1202685031219200040']
+          const ROLES_PERMITIDOS = ['1106553480803516437', '1107345436492185753', '1106553536839422022', '1202685031219200040']
 
           const tienePermiso = interaction.member.roles.cache.some(role =>
             ROLES_PERMITIDOS.includes(role.id)
@@ -284,7 +284,7 @@ module.exports = {
   
         case "editar": {
 
-          const ROLES_PERMITIDOS = ['1106553480803516437', '1107345436492185753', '1106553536839422022' '1202685031219200040']
+          const ROLES_PERMITIDOS = ['1106553480803516437', '1107345436492185753', '1106553536839422022', '1202685031219200040']
 
           const tienePermiso = interaction.member.roles.cache.some(role =>
             ROLES_PERMITIDOS.includes(role.id)
@@ -335,7 +335,7 @@ module.exports = {
 
         case "lista": {
 
-          const ROLES_PERMITIDOS = ['1106553480803516437', '1107345436492185753', '1106553536839422022' '1202685031219200040', '959153630328528976']
+          const ROLES_PERMITIDOS = ['1106553480803516437', '1107345436492185753', '1106553536839422022', '1202685031219200040', '959153630328528976']
 
           const tienePermiso = interaction.member.roles.cache.some(role =>
             ROLES_PERMITIDOS.includes(role.id)
@@ -395,7 +395,7 @@ module.exports = {
 
         case 'leaderboard': {
 
-          const ROLES_PERMITIDOS = ['1106553480803516437', '1107345436492185753', '1106553536839422022' '1202685031219200040', '959153630328528976']
+          const ROLES_PERMITIDOS = ['1106553480803516437', '1107345436492185753', '1106553536839422022', '1202685031219200040', '959153630328528976']
 
           const tienePermiso = interaction.member.roles.cache.some(role =>
             ROLES_PERMITIDOS.includes(role.id)
