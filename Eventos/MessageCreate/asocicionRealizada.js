@@ -12,8 +12,8 @@ module.exports = {
     const invitacionRegex = /(?:https?:\/\/)?(?:www\.)?(?:discord\.gg|discord\.com\/invite)\/\w+/i;
     if (!invitacionRegex.test(message.content)) return;
 
-    const data = require('./Esquemas/asociacionesSchema.js');
-    const staffData = require('./Esquemas/staffStats.js');
+    const data = require('../../Esquemas/asociacionesSchema.js');
+    const staffData = require('../../Esquemas/staffStats.js');
 
     try {
         const documentos = await data.find({});
