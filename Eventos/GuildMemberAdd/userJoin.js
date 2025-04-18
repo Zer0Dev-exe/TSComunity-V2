@@ -21,15 +21,13 @@ module.exports = {
         .setURL('https://discord.js.org')
         .setThumbnail(member.user.displayAvatarURL())
         .addFields(
-            { name: 'Cuenta creada el', value: `<t:${Math.floor(member.user.createdTimestamp / 1000)}:D>`, inline: true },
-            { name: 'Se unió el', value: `<t:${Math.floor(member.joinedTimestamp / 1000)}:D>`, inline: true },
-            { name: '\u200B', value: '\u200B' },
-            { name: 'ID de usuario', value: member.id, inline: true }
+            { name: '<:verificacion:1362849933019058449> Verificación', value: `<#1112754769472270449>`, inline: true },
+            { name: '<:info:1362850080880722040> Info Server', value: `<#1300074754757234688>`, inline: true },
         )
         .setTimestamp()
         .setFooter({
-            text: 'Bienvenida automática del servidor',
-            iconURL: member.guild.iconURL()
+            text: `Eres el miembro #${guild.memberCount} de ${guild.name}`,
+            iconURL: guild.iconURL()
         })
     
     channel.send({ embeds: [embed] })
