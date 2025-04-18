@@ -362,7 +362,6 @@ timeStampt.edit(`
 > *Asegurate de que en los anteriores 2 mensajes nadie haya publicado la plantilla.*
     
 ## Servidores donde se puede promocionar
-> [Brawl Monkey Kingdom](https://discord.gg/hzm3QeuynD)
 > [GuilleVGX - Brawl Stars](https://discord.gg/77sQHhmZkm)
 > [GoDeik TEAM](https://discord.gg/h2mSWgcMag)
 > [Templo de los ricochets (iKaoss community)](https://discord.gg/6VhNHVMgcr)
@@ -372,7 +371,6 @@ timeStampt.edit(`
 > [Pizza BS](https://discord.gg/jcmeX4bS9g)
 > [Cats World BS](https://discord.gg/n6qqa5CyN7)
 > [Team Turtle](https://discord.gg/jg9Yet8pNW)
-> [BrawlStation](https://discord.gg/qfWKdvVPjs)
     
 *Plantilla actualizada cada 2 min, última actualización a las \`${formattedDate}\`.*
     ** **
