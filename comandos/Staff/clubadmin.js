@@ -113,9 +113,9 @@ module.exports = {
                   
                       const rolesClub = guild.roles.cache
                       .filter(role => role.name.startsWith('🔰 Miembro'))
-                      .sort((a, b) => a.position - b.position)
-                      const ultimoRolClub = rolesClub.last()
-                      const nuevaPosicion = ultimoRolClub.position + 1
+                      .sort((a, b) => b.position - a.position)
+                      const ultimoRolClub = rolesClub.at(-1)
+                      const nuevaPosicion = ultimoRolClub.position
                   
                       const nuevoRol = await guild.roles.create({
                           name: nombreRol,
@@ -165,8 +165,7 @@ module.exports = {
 
                     const data = await Schema.findOne({ ClubTag: tag.replace('#', '') });
                     if(data) return await interaction.reply('Este tag ya estaba guardado');
-                    let createdData
-                    await Schema.create({ ClubTag: tag.replace('#', ''), Region: region, Alias: alias }).then(data => { createdData = data })
+                    let createdData = await Schema.create({ ClubTag: tag.replace('#', ''), Region: region, Alias: alias }).then(data => { createdData = data })
 
                     const embed = new EmbedBuilder()
                     .setTitle(`Nuevo club con el tag ${tag}`)
