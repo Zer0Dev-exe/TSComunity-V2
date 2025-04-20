@@ -55,15 +55,14 @@ module.exports = {
                 name: 'Nueva Renovación de Asociación Realizada', 
                 iconURL: guild.iconURL(),
             })
-            .setDescription(`> ୧📅୨ **Renovación • <t:${renovacionTimestamp}:T>, <t:${renovacionTimestamp}:R>**
+            .setDescription(`> ୧📅୨ **Renovación • <t:${renovacionTimestamp}:d> (<t:${renovacionTimestamp}:R>)**
 > ୧👤﻿୨ **Representante • <@${representante}>**
 > ୧🔧୨ **Encargado • <@${asignado}>**
 ### ✦₊⁺⋆｡︵︵୧ \`D\` \`A\` \`T\` \`O\` \`S\` ୨ ︵︵｡⋆⁺₊✦
 > ୧<:emoji_162:1339643027525861467>୨ **Renovaciones Totales • ${staffDoc.Renovaciones}**
 > ୧<:ranking:1339643077824086108>୨ **Rango Total • #${posicion}**
 
-***Para evitar este ping añadete el rol <@&1219196487011930194> en ⁠ <id:customize>.***`)
-            .setFooter({ text: `Renovación con ${server}` })
+-# Para evitar este ping añadete el rol <@&1219196487011930194> en ⁠ <id:customize>.`)
             .setTimestamp();
 
         try {

@@ -24,8 +24,8 @@ async execute(member, client) {
       .setURL('https://discord.js.org')
       .setThumbnail(member.user.displayAvatarURL())
       .addFields(
-          { name: ':verificacion: Verificación', value: `<#1112754769472270449>`, inline: true },
-          { name: ':info: Info Server', value: `<#1300074754757234688>`, inline: true },
+          { name: '<:verificacion:1362849933019058449> Verificación', value: `<#1112754769472270449>`, inline: true },
+          { name: '<:info:1362850080880722040> Info Server', value: `<#1300074754757234688>`, inline: true },
       )
       .setTimestamp()
       .setFooter({
