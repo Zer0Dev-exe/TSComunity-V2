@@ -14,8 +14,8 @@ name: "interactionCreate",
 
 async execute(interaction, client) {
     console.log('1')
-  const condition = interaction.isButton && interaction.customId.startsWith('saludar-')
-
+  const condition = interaction.isButton() && interaction.customId.startsWith('saludar-')
+  console.log(interaction.customId)
   if (!condition) return
   console.log('2')
 
