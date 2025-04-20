@@ -14,8 +14,6 @@ async execute(member, client) {
   const channel = guild.channels.cache.get('1096150563667837011')
 
   if (!channel) return
-
-  const member = await interaction.guild.members.fetch(member.user.id)
   const displayName = member.displayName
 
   const embed = new EmbedBuilder()
