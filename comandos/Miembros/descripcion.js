@@ -64,17 +64,17 @@ module.exports = {
 
         const copasOutput = copas ? `|+${copas}k🏆` : ''
 
-        const countriEmoji = countries[region].emoji
-
         let tops
 
         if (global && local) {
             if (!region) return interaction.reply('Para usar la opción de top local debes añadir una región')
+            const countriEmoji = countries[region].emoji
             tops = `|${global}🌍${local}${countriEmoji}`
         } else if (global) {
             tops = `|${global}🌍$`
         } else if (local) {
             if (!region) return interaction.reply('Para usar la opción de top local debes añadir una región')
+            const countriEmoji = countries[region].emoji
             tops = `|${local}${countriEmoji}`
         } else {
             tops = ''

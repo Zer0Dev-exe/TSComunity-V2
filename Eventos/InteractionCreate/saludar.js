@@ -13,9 +13,11 @@ module.exports = {
 name: "interactionCreate",
 
 async execute(interaction, client) {
-  const condition = interaction.isButton && interaction.customId.startsWith('saludar-')
-
+    console.log('1')
+  const condition = interaction.isButton() && interaction.customId.startsWith('saludar-')
+  console.log(interaction.customId)
   if (!condition) return
+  console.log('2')
 
   const userID = interaction.customId.replace('saludar-', '')
 
@@ -33,6 +35,8 @@ async execute(interaction, client) {
       }
 
       const newData = await schema.find({ id: interaction.user.id })
+
+      console.log('3')
 
       const member = await interaction.guild.members.fetch(interaction.user.id)
       const displayName = member.displayName
@@ -52,12 +56,16 @@ async execute(interaction, client) {
       await interaction.update({
           components: [row]
         })
-      
+
+        console.log('4')
+
+    
       const embed = new EmbedBuilder()
       .setColor('Blue')
       .setDescription(`**${displayName}** le da la bienvenida a **${displayName2}**\n-# **${displayName}** ha dado **${newData.bienvenidas}** bienvenidas en total`)
 
       await interaction.channel.send({ embeds: [embed] })
+      console.log('5')
   } catch(error) {
       console.log(error)
   }
