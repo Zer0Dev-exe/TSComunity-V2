@@ -38,6 +38,6 @@ async execute(member, client) {
   const row = new ActionRowBuilder()
       .addComponents(saludar)
 
-  channel.send({ content: `<@${member.user.id}>`, embeds: [embed], components: [row] })
+  channel.send({ embeds: [embed], components: [row] })
 }
 }
