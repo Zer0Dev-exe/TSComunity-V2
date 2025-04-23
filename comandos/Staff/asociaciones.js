@@ -306,13 +306,11 @@ module.exports = {
 
           if (!data) return await interaction.reply('No está guardado este canal en la base de datos, primero usa /asociaciones agregar o agregar-manual')
 
-          const asociacion = await Asociacion.findOneAndUpdate(
-            { Canal: canal.id },
-            { Asignado: usuario.id },
-            { Renovacion: duracion },
-            { Representante: representante.id },
-            { new: true }
-          )
+          data.Asignado = encargado?.id || data.Asignado
+          data.Renovacion = (duracion !== null && duracion !== undefined) ? duracion : data.Renovacion
+          data.Representante = representante?.id || data.Representante
+
+          await data.save()
   
           if (!asociacion) {
             return interaction.reply("No se encontró la asociación para ese canal.")
@@ -323,9 +321,9 @@ module.exports = {
           .setColor('Purple')
           .addFields(
             { name: 'Canal', value: canal.id, inline: true  },
-            { name: 'Encargado', value: `<@${encargado}>`, inline: true  },
+            { name: 'Encargado', value: `<@${encargado.id}>`, inline: true  },
             { name: 'Renovación', value: duracion, inline: true },
-            { name: 'Reoresentante', value: `<@${representante}>`, inline: true },
+            { name: 'Reoresentante', value: `<@${representante.id}>`, inline: true },
           )
 
           return interaction.reply(
