@@ -1,3 +1,5 @@
+require('dotenv').config()
+
 const {
   Events,
   ModalBuilder,
@@ -9,18 +11,18 @@ const {
   ButtonStyle
 } = require("discord.js")
 
+const TENORKEY = provess.env.TENORKEY
+
 module.exports = {
 name: "interactionCreate",
 
 async execute(interaction, client) {
-    console.log('1')
+
   const condition = interaction.isButton() && interaction.customId.startsWith('saludar-')
+
   if (!condition) return
-  console.log(interaction.customId)
-  console.log('2')
 
   const userID = interaction.customId.replace('saludar-', '')
-
 
   try {
       const schema = require('../../Esquemas/userSchema.js')
@@ -36,7 +38,6 @@ async execute(interaction, client) {
 
       const newData = await schema.findOne({ id: interaction.user.id })
 
-      console.log('3')
 
       const member = await interaction.guild.members.fetch(interaction.user.id)
       const displayName = member.displayName
@@ -57,15 +58,37 @@ async execute(interaction, client) {
           components: [row]
         })
 
-        console.log('4')
 
-    
+const axios = require('axios');
+
+// Función que busca un GIF desde Tenor
+async function getGif(query) {
+  const response = await axios.get('https://tenor.googleapis.com/v2/search', {
+    params: {
+      key: TENORKEY,
+      q: query,
+      limit: 1
+    }
+  });
+
+  if (response.data.results.length > 0) {
+    return response.data.results[0].media_formats.gif.url;
+  } else {
+    return null;
+  }
+}
+
       const embed = new EmbedBuilder()
-      .setColor('Blue')
+      .setColor('Purple')
       .setDescription(`**${displayName}** le da la bienvenida a **${displayName2}**\n-# **${displayName}** ha dado **${newData.bienvenidas}** bienvenidas en total`)
+      
+      const gifUrl = await getGif('welcome')
 
-      await interaction.channel.send({ embeds: [embed] })
-      console.log('5')
+      if (gifUrl) {
+        embed.setImage(gifUrl)
+      }
+
+      await interaction.followUp({ embeds: [embed] })
   } catch(error) {
       console.log(error)
   }
