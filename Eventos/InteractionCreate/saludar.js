@@ -15,8 +15,8 @@ name: "interactionCreate",
 async execute(interaction, client) {
     console.log('1')
   const condition = interaction.isButton() && interaction.customId.startsWith('saludar-')
-  console.log(interaction.customId)
   if (!condition) return
+  console.log(interaction.customId)
   console.log('2')
 
   const userID = interaction.customId.replace('saludar-', '')
@@ -25,7 +25,7 @@ async execute(interaction, client) {
   try {
       const schema = require('../../Esquemas/userSchema.js')
 
-      const data = await schema.find({ id: interaction.user.id })
+      const data = await schema.findOne({ id: interaction.user.id })
 
       if (data) {
           data.bienvenidas += 1;
@@ -34,7 +34,7 @@ async execute(interaction, client) {
           await schema.create({ id: interaction.user.id, bienvenidas: 1 });
       }
 
-      const newData = await schema.find({ id: interaction.user.id })
+      const newData = await schema.findOne({ id: interaction.user.id })
 
       console.log('3')
 

@@ -63,7 +63,6 @@ module.exports = {
 > ୧<:ranking:1339643077824086108>୨ **Rango Total • #${posicion}**
 
 -# Para evitar este ping añadete el rol <@&1219196487011930194> en ⁠ <id:customize>.`)
-            .setTimestamp();
 
         try {
             await message.channel.send({ embeds: [embed] });
