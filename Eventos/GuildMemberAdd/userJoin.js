@@ -23,7 +23,7 @@ async execute(member, client) {
       .setThumbnail(member.user.displayAvatarURL())
       .addFields(
           { name: '<:verificacion:1362849933019058449> Verificación', value: `<#1112754769472270449>`, inline: true },
-          { name: '<:info:1362850080880722040> Info Server', value: `<#1300074754757234688>`, inline: true },
+          { name: '<:info:1365759723118399508> Info Server', value: `<#1300074754757234688>`, inline: true },
       )
       .setFooter({
           text: `Eres el miembro #${guild.memberCount} de ${guild.name}`,
