@@ -87,7 +87,7 @@ async execute(interaction, client) {
 
       const embed = new EmbedBuilder()
       .setColor('Purple')
-      .setDescription(`**${displayName}** le da la bienvenida a **${displayName2}**\n-# **${displayName}** ha dado **${newData.bienvenidas}** bienvenidas en total`)
+      .setDescription(`**${displayName}** le da la bienvenida a **${displayName2}**\n-# ${displayName} ha dado **${newData.bienvenidas}** bienvenidas en total`)
       
       const gif = await getGif('welcome')
 
