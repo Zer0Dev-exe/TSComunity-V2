@@ -32,7 +32,8 @@ async execute(member, client) {
   
   const saludar = new ButtonBuilder()
       .setCustomId(`saludar-${member.user.id}`)
-      .setLabel('👋')
+      .setEmoji('👋')
+      .setLabel('¡Saludar!')
       .setStyle(ButtonStyle.Secondary)
 
   const row = new ActionRowBuilder()
