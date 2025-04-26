@@ -257,7 +257,7 @@ setInterval(async () => {
         });
 
         const resumenEmbed = new EmbedBuilder()
-            .setDescription(`# Información clubes TS`)
+            .setDescription(`# Información Clubes TS`)
             .setThumbnail(client.user.avatarURL())
             .addFields(
                 { name: 'Total Trofeos:', value: `<:trophy:1178100595530420355> \`${totalCopas.toLocaleString()}\``, inline: true },
