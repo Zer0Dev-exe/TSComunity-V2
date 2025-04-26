@@ -10,6 +10,7 @@ const {
   ButtonBuilder,
   ButtonStyle
 } = require("discord.js")
+const axios = require('axios');
 
 const TENORKEY = provess.env.TENORKEY
 
@@ -24,7 +25,53 @@ async execute(interaction, client) {
 
   const userID = interaction.customId.replace('saludar-', '')
 
+  .setCustomId(`saludar-disabled`)
+  .setEmoji('👋')
+  .setLabel('¡Saludar!')
+  .setStyle(ButtonStyle.Secondary)
+
+  const row = new ActionRowBuilder()
+  .addComponents(saludar)
+
+  async function getGif(query) {
+    const response = await axios.get('https://tenor.googleapis.com/v2/search', {
+      params: {
+        key: TENORKEY,
+        q: query,
+        limit: 1
+      }
+    })
+
+    if (response.data.results.length > 0) {
+      return { url: response.data.results[0].media_formats.gif.url, title: response.data.results[0].title }
+    } else {
+      return null
+    }
+  }
+
+
   try {
+      const member = await interaction.guild.members.fetch(interaction.user.id)
+
+      if (!member) return
+
+      const displayName = member.displayName
+
+      const member2 = await interaction.guild.members.fetch(userID)
+
+      if (!member2) {
+        await interaction.update({ components: [row] })
+        await interaction.followUp({ content: 'El usuario no se encuentra en el servidor', ephemeral: true })
+        return
+      }
+
+      const displayName2 = member2.displayName
+
+      await interaction.update({
+          components: [row]
+        })
+
+
       const schema = require('../../Esquemas/userSchema.js')
 
       const data = await schema.findOne({ id: interaction.user.id })
@@ -38,57 +85,18 @@ async execute(interaction, client) {
 
       const newData = await schema.findOne({ id: interaction.user.id })
 
-
-      const member = await interaction.guild.members.fetch(interaction.user.id)
-      const displayName = member.displayName
-
-      const member2 = await interaction.guild.members.fetch(userID)
-      const displayName2 = member2.displayName
-
-      const saludar = new ButtonBuilder()
-          .setCustomId(`saludar-${member.user.id}`)
-          .setLabel('👋')
-          .setStyle(ButtonStyle.Secondary)
-          .setDisabled(true)
-
-      const row = new ActionRowBuilder()
-          .addComponents(saludar)
-
-      await interaction.update({
-          components: [row]
-        })
-
-
-const axios = require('axios');
-
-// Función que busca un GIF desde Tenor
-async function getGif(query) {
-  const response = await axios.get('https://tenor.googleapis.com/v2/search', {
-    params: {
-      key: TENORKEY,
-      q: query,
-      limit: 1
-    }
-  });
-
-  if (response.data.results.length > 0) {
-    return response.data.results[0].media_formats.gif.url;
-  } else {
-    return null;
-  }
-}
-
       const embed = new EmbedBuilder()
       .setColor('Purple')
       .setDescription(`**${displayName}** le da la bienvenida a **${displayName2}**\n-# **${displayName}** ha dado **${newData.bienvenidas}** bienvenidas en total`)
       
-      const gifUrl = await getGif('welcome')
+      const gif = await getGif('welcome')
 
-      if (gifUrl) {
-        embed.setImage(gifUrl)
+      if (gif) {
+        embed.setImage(gif.url)
+        embed.setFooter(gif.title)
       }
 
-      await interaction.followUp({ embeds: [embed] })
+      await interaction.followUp({ content: `<@${userID}>`, embeds: [embed] })
   } catch(error) {
       console.log(error)
   }
