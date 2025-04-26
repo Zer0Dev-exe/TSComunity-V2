@@ -284,51 +284,50 @@ module.exports = {
   
         case "editar": {
 
-          const ROLES_PERMITIDOS = ['1106553480803516437', '1107345436492185753', '1106553536839422022', '1363927756617941154', '1202685031219200040']
+          const ROLES_PERMITIDOS = ['1106553480803516437', '1107345436492185753', '1106553536839422022', '1363927756617941154', '1202685031219200040'];
 
           const tienePermiso = interaction.member.roles.cache.some(role =>
             ROLES_PERMITIDOS.includes(role.id)
           );
-    
+          
           if (!tienePermiso) {
             return interaction.reply({
-             content: '🚫 No tienes permiso para usar este comando.',
+              content: '🚫 No tienes permiso para usar este comando.',
               ephemeral: true
             });
           }
-
-          const canal = interaction.options.getChannel("canal")
-          const encargado = interaction.options.getUser("encargado")
-          const duracion = interaction.options.getInteger("duracion")
-          const representante = interaction.options.getUser("representante")
-
-          const data = await Asociacion.findOne({ Canal: canal.id})
-
-          if (!data) return await interaction.reply('No está guardado este canal en la base de datos, primero usa /asociaciones agregar o agregar-manual')
-
-          data.Asignado = encargado?.id || data.Asignado
-          data.Renovacion = (duracion !== null && duracion !== undefined) ? duracion : data.Renovacion
-          data.Representante = representante?.id || data.Representante
-
-          await data.save()
-  
-          if (!asociacion) {
-            return interaction.reply("No se encontró la asociación para ese canal.")
+          
+          const canal = interaction.options.getChannel("canal");
+          const encargado = interaction.options.getUser("encargado");
+          const duracion = interaction.options.getInteger("duracion");
+          const representante = interaction.options.getUser("representante");
+          
+          const data = await Asociacion.findOne({ Canal: canal.id });
+          
+          if (!data) {
+            return await interaction.reply('No está guardado este canal en la base de datos, primero usa /asociaciones agregar o agregar-manual');
           }
-  
+          
+          // Actualizar datos
+          data.Asignado = encargado?.id || data.Asignado;
+          data.Renovacion = (duracion !== null && duracion !== undefined) ? duracion : data.Renovacion;
+          data.Representante = representante?.id || data.Representante;
+          
+          await data.save();
+          
+          // Crear embed
           const embed = new EmbedBuilder()
-          .setTitle('Asociación Editada')
-          .setColor('Purple')
-          .addFields(
-            { name: 'Canal', value: canal.id, inline: true  },
-            { name: 'Encargado', value: `<@${encargado.id}>`, inline: true  },
-            { name: 'Renovación', value: duracion, inline: true },
-            { name: 'Reoresentante', value: `<@${representante.id}>`, inline: true },
-          )
-
-          return interaction.reply(
-            { embeds: [embed]}
-          )
+            .setTitle('Asociación Editada')
+            .setColor('Purple')
+            .addFields(
+              { name: 'Canal', value: `<#${canal.id}>`, inline: true },
+              { name: 'Encargado', value: encargado ? `<@${encargado.id}>` : 'Sin cambios', inline: true },
+              { name: 'Renovación', value: duracion ? duracion.toString() : 'Sin cambios', inline: true },
+              { name: 'Representante', value: representante ? `<@${representante.id}>` : 'Sin cambios', inline: true },
+            );
+          
+          return interaction.reply({ embeds: [embed] });
+          
         }
 
         case "lista": {
