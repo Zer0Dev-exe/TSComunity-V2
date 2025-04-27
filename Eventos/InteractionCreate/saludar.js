@@ -12,7 +12,7 @@ const {
 } = require("discord.js")
 const axios = require('axios');
 
-const TENORKEY = provess.env.TENORKEY
+const TENORKEY = process.env.TENORKEY
 
 module.exports = {
 name: "interactionCreate",
