@@ -20,8 +20,8 @@ module.exports = {
                 // Construir una cadena de texto con los primeros 10 puestos
                 let topText = '';
                 ranking.forEach((user, index) => {
-                  if (user.ID) {
-                    topText += `\`${(index + 1).toString().padStart(3, '0')} -${user.bienvenidas.toString().padStart(7, ' ')} → \`<@${user.ID}>\n`
+                  if (user.id) {
+                    topText += `\`${(index + 1).toString().padStart(3, '0')} -${user.bienvenidas.toString().padStart(7, ' ')} → \`<@${user.id}>\n`
                   }
                 })
       
