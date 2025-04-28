@@ -25,6 +25,7 @@ async execute(interaction, client) {
 
   const userID = interaction.customId.replace('saludar-', '')
 
+  const saludar = new ButtonBuilder()
   .setCustomId(`saludar-disabled`)
   .setEmoji('👋')
   .setLabel('¡Saludar!')
