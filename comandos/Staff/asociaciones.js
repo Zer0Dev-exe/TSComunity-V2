@@ -92,7 +92,7 @@ module.exports = {
           )
           .addUserOption((option) =>
             option
-              .setName("rerpesentante")
+              .setName("representante")
               .setDescription("El representante de la asociación.")
               .setRequired(false)
           )
