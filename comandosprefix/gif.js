@@ -26,6 +26,7 @@ module.exports = {
         const embed = new EmbedBuilder()
         .setColor('Blue')
         .setTitle('Gif Encontrado')
+        .setDescription(args.join(' '))
 
         if (gif) {
             if (gif.url) {
