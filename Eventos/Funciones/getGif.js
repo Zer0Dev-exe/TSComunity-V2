@@ -9,7 +9,7 @@ module.exports = async function getGif(query) {
     const response = await axios.get('https://tenor.googleapis.com/v2/search', {
         params: {
             key: TENORKEY,
-            q: `${query} no text`,
+            q: `query,
             limit: 40,
             contentfilter: 'high',
             media_filter: 'minimal',
