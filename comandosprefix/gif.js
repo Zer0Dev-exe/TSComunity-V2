@@ -36,7 +36,7 @@ module.exports = {
                 }
               }
 
-        const gif = await getGif[args.join(' ')]
+        const gif = await getGif(args.join(' '))
 
         if (!gif) {
             const embed = new EmbedBuilder()
@@ -57,7 +57,7 @@ module.exports = {
                 embed.setImage(gif.url)
             }
             if (gif.title) [
-                emebd.setFooter({ text: gif.title })
+                embed.setFooter({ text: gif.title })
             ]
         }
 
