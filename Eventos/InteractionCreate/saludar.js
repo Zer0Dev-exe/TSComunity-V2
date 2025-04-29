@@ -35,7 +35,6 @@ async execute(interaction, client) {
   const row = new ActionRowBuilder()
   .addComponents(saludar)
 
-  try {
 
   async function getGif(query) {
     const response = await axios.get('https://tenor.googleapis.com/v2/search', {
@@ -61,9 +60,10 @@ async execute(interaction, client) {
       const displayName = member.displayName
       console.log(displayName)
 
-      const member2 = await interaction.guild.members.fetch(userID)
-
-      if (!member2) {
+      let member2
+      try {
+        member2 = await interaction.guild.members.fetch(userID)
+      } catch(error) {
         await interaction.update({ components: [row] })
         await interaction.followUp({ content: 'El usuario no se encuentra en el servidor', ephemeral: true })
         return
@@ -76,7 +76,7 @@ async execute(interaction, client) {
           components: [row]
         })
 
-
+    try {
       const schema = require('../../Esquemas/userSchema.js')
 
       const data = await schema.findOne({ id: interaction.user.id })
@@ -96,9 +96,11 @@ async execute(interaction, client) {
       
       const gif = await getGif('welcome')
 
-      if (gif) {
+      if (gif.url) {
         embed.setImage(gif.url)
-        embed.setFooter(gif.title)
+      }
+      if (gif.title && gif.title.trim() !== '') {
+        embed.setFooter({ text: gif.title })
       }
 
       await interaction.followUp({ content: `<@${userID}>`, embeds: [embed] })
