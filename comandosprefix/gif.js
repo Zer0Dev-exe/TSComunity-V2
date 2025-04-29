@@ -1,6 +1,6 @@
 const { EmbedBuilder, PermissionsBitField, ChannelType } = require("discord.js")
 
-const getGif = require('../Eventos/Funciones/getGif.js')
+const { getGif } = require('../Eventos/Funciones/getGif.js')
 
 module.exports = {
     name: "gif",
@@ -31,9 +31,9 @@ module.exports = {
             if (gif.url) {
                 embed.setImage(gif.url)
             }
-            if (gif.title) [
+            if (gif.title) {
                 embed.setFooter({ text: gif.title })
-            ]
+            }
         }
 
         message.reply({ embeds: [embed] })
