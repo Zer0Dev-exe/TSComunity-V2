@@ -5,11 +5,11 @@ require('dotenv').config()
 
 const TENORKEY = process.env.TENORKEY
 
-module.exports = async function getGif(query) {
+async function getGif(query) {
     const response = await axios.get('https://tenor.googleapis.com/v2/search', {
         params: {
             key: TENORKEY,
-            q: `query,
+            q: query,
             limit: 40,
             contentfilter: 'high',
             media_filter: 'minimal',
@@ -31,3 +31,5 @@ module.exports = async function getGif(query) {
       return null
     }
 }
+
+module.exports = { getGif }
