@@ -1,9 +1,6 @@
 const { EmbedBuilder, PermissionsBitField, ChannelType } = require("discord.js")
-const axios = require('axios')
 
-require('dotenv').config()
-
-const TENORKEY = process.env.TENORKEY
+const getGif = require('../Eventos/Funciones/getGif.js')
 
 module.exports = {
     name: "gif",
@@ -13,29 +10,6 @@ module.exports = {
     run: async(message, client, args) => {
 
         if (!args) return message.reply('Tienes que añadir un argumento')
-
-            async function getGif(query) {
-                const response = await axios.get('https://tenor.googleapis.com/v2/search', {
-                  params: {
-                    key: TENORKEY,
-                    q: query,
-                    limit: 20
-                  }
-                })
-              
-                const results = response.data.results
-              
-                if (results.length > 0) {
-                  const randomIndex = Math.floor(Math.random() * results.length)
-                  const gifData = results[randomIndex]
-                  return {
-                    url: gifData.media_formats.gif.url,
-                    title: gifData.content_description || null
-                  }
-                } else {
-                  return null
-                }
-              }
 
         const gif = await getGif(args.join(' '))
 

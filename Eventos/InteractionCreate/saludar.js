@@ -1,4 +1,3 @@
-require('dotenv').config()
 
 const {
   Events,
@@ -10,9 +9,8 @@ const {
   ButtonBuilder,
   ButtonStyle
 } = require("discord.js")
-const axios = require('axios');
 
-const TENORKEY = process.env.TENORKEY
+const getGif = require('../Funciones/getGif.js')
 
 module.exports = {
 name: "interactionCreate",
@@ -34,24 +32,6 @@ async execute(interaction, client) {
 
   const row = new ActionRowBuilder()
   .addComponents(saludar)
-
-
-  async function getGif(query) {
-    const response = await axios.get('https://tenor.googleapis.com/v2/search', {
-      params: {
-        key: TENORKEY,
-        q: query,
-        limit: 1
-      }
-    })
-
-    if (response.data.results.length > 0) {
-      return { url: response.data.results[0].media_formats.gif.url, title: response.data.results[0].title }
-    } else {
-      return null
-    }
-  }
-
 
       const member = await interaction.guild.members.fetch(interaction.user.id)
 
@@ -99,8 +79,10 @@ async execute(interaction, client) {
         if (gif.url) {
             embed.setImage(gif.url)
         }
+        if (gif.title) [
+            embed.setFooter({ text: gif.title })
+        ]
     }
-
       await interaction.followUp({ content: `<@${userID}>`, embeds: [embed] })
   } catch(error) {
       console.log(error)
