@@ -24,7 +24,6 @@ async execute(interaction, client) {
   if (!condition) return
 
   const userID = interaction.customId.replace('saludar-', '')
-  console.log(userID)
 
   const saludar = new ButtonBuilder()
   .setCustomId(`saludar-disabled`)
@@ -58,12 +57,20 @@ async execute(interaction, client) {
       if (!member) return
 
       const displayName = member.displayName
-      console.log(displayName)
 
       let member2
       try {
         member2 = await interaction.guild.members.fetch(userID)
       } catch(error) {
+        const saludar = new ButtonBuilder()
+        .setCustomId(`saludar-disabled`)
+        .setEmoji('👋')
+        .setLabel('¡Saludar!')
+        .setStyle(ButtonStyle.Secondary)
+      
+        const row = new ActionRowBuilder()
+        .addComponents(saludar)
+        
         await interaction.update({ components: [row] })
         await interaction.followUp({ content: 'El usuario no se encuentra en el servidor', ephemeral: true })
         return
