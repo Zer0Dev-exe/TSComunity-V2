@@ -24,6 +24,7 @@ async execute(interaction, client) {
   if (!condition) return
 
   const userID = interaction.customId.replace('saludar-', '')
+  console.log(userID)
 
   const saludar = new ButtonBuilder()
   .setCustomId(`saludar-disabled`)
@@ -33,6 +34,8 @@ async execute(interaction, client) {
 
   const row = new ActionRowBuilder()
   .addComponents(saludar)
+
+  try {
 
   async function getGif(query) {
     const response = await axios.get('https://tenor.googleapis.com/v2/search', {
@@ -51,12 +54,12 @@ async execute(interaction, client) {
   }
 
 
-  try {
       const member = await interaction.guild.members.fetch(interaction.user.id)
 
       if (!member) return
 
       const displayName = member.displayName
+      console.log(displayName)
 
       const member2 = await interaction.guild.members.fetch(userID)
 
@@ -67,6 +70,7 @@ async execute(interaction, client) {
       }
 
       const displayName2 = member2.displayName
+      console.log(displayName2)
 
       await interaction.update({
           components: [row]
