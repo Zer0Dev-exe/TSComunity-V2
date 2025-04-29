@@ -1,4 +1,5 @@
-const { EmbedBuilder, PermissionsBitField, ChannelType } = require("discord.js");
+const { EmbedBuilder, PermissionsBitField, ChannelType } = require("discord.js")
+const axios = require('axios')
 
 require('dotenv').config()
 
