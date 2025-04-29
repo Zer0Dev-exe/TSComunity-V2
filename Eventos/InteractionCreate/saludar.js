@@ -95,12 +95,11 @@ async execute(interaction, client) {
       
       const gif = await getGif('welcome')
 
-      if (gif.url) {
-        embed.setImage(gif.url)
-      }
-      if (gif.title && gif.title.trim() !== '') {
-        embed.setFooter({ text: gif.title })
-      }
+      if (gif) {
+        if (gif.url) {
+            embed.setImage(gif.url)
+        }
+    }
 
       await interaction.followUp({ content: `<@${userID}>`, embeds: [embed] })
   } catch(error) {
