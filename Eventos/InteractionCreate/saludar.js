@@ -10,7 +10,7 @@ const {
   ButtonStyle
 } = require("discord.js")
 
-const getGif = require('../Funciones/getGif.js')
+const { getGif } = require('../Funciones/getGif.js')
 
 module.exports = {
 name: "interactionCreate",
