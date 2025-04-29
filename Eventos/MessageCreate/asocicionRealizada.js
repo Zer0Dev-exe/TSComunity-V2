@@ -1,7 +1,7 @@
 const { Events, EmbedBuilder } = require("discord.js")
 
 const cooldowns = new Map();
-lo
+
 module.exports = {
   name: "messageCreate",
 
