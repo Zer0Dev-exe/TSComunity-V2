@@ -73,7 +73,7 @@ async execute(interaction, client) {
       .setColor('Purple')
       .setDescription(`**${displayName}** le da la bienvenida a **${displayName2}**\n-# ${displayName} ha dado **${newData.bienvenidas}** bienvenidas en total`)
       
-      const gif = await getGif('welcome anime')
+      const gif = await getGif('anime welcome')
 
       if (gif) {
         if (gif.url) {
