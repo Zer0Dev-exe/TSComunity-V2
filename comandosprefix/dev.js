@@ -1,4 +1,4 @@
-const { EmbedBuilder } = require("discord.js");
+const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require("discord.js");
 const { exec } = require("child_process");
 
 module.exports = {
@@ -12,24 +12,104 @@ module.exports = {
 
         const subcommand = args[0]?.toLowerCase();
 
+        // IDs de PM2
+        const pm2Ids = {
+            comunity: 12,
+            league: 13
+        };
+
         if (subcommand === "reiniciar") {
             const embed = new EmbedBuilder()
-                .setTitle("Reiniciando el bot")
+                .setTitle("Reiniciar bot")
                 .setColor("#00ff99")
-                .setDescription("Reiniciando el bot en 2 segundos...");
-            await message.channel.send({ embeds: [embed] });
+                .setDescription("Selecciona qué bot deseas reiniciar:");
 
-            setTimeout(() => {
-                exec("pm2 restart 12", (error, stdout, stderr) => {
-                    if (error) {
-                        return message.channel.send(`Error al reiniciar con PM2: \`${error.message}\``);
-                    }
-                    if (stderr) {
-                        return message.channel.send(`stderr: \`${stderr}\``);
-                    }
-                    message.channel.send(`Bot reiniciado con PM2:\n\`\`\`bash\n${stdout}\n\`\`\``);
+            const row = new ActionRowBuilder().addComponents(
+                new ButtonBuilder()
+                    .setCustomId("restart_comunity")
+                    .setLabel("TS Comunity")
+                    .setStyle(ButtonStyle.Primary),
+                new ButtonBuilder()
+                    .setCustomId("restart_league")
+                    .setLabel("TS League")
+                    .setStyle(ButtonStyle.Secondary)
+            );
+
+            await message.channel.send({ embeds: [embed], components: [row] });
+
+            const filter = i =>
+                ["restart_comunity", "restart_league"].includes(i.customId) &&
+                i.user.id === message.author.id;
+            const collector = message.channel.createMessageComponentCollector({ filter, time: 15000, max: 1 });
+
+            collector.on("collect", async interaction => {
+                let botName = interaction.customId === "restart_comunity" ? "TS Comunity" : "TS League";
+                let pm2Id = interaction.customId === "restart_comunity" ? pm2Ids.comunity : pm2Ids.league;
+
+                await interaction.update({
+                    content: `Reiniciando **${botName}** en 2 segundos...`,
+                    embeds: [],
+                    components: []
                 });
-            }, 2000);
+
+                setTimeout(() => {
+                    exec(`pm2 restart ${pm2Id}`, (error, stdout, stderr) => {
+                        // No se puede enviar mensaje porque el bot se reinicia, pero puedes loguear si quieres
+                    });
+                }, 2000);
+            });
+
+            collector.on("end", collected => {
+                if (collected.size === 0) {
+                    message.channel.send("No se recibió confirmación, operación cancelada.");
+                }
+            });
+
+        } else if (subcommand === "apagar") {
+            const embed = new EmbedBuilder()
+                .setTitle("Apagar bot")
+                .setColor("#ff3333")
+                .setDescription("Selecciona qué bot deseas apagar:");
+
+            const row = new ActionRowBuilder().addComponents(
+                new ButtonBuilder()
+                    .setCustomId("shutdown_comunity")
+                    .setLabel("TS Comunity")
+                    .setStyle(ButtonStyle.Danger),
+                new ButtonBuilder()
+                    .setCustomId("shutdown_league")
+                    .setLabel("TS League")
+                    .setStyle(ButtonStyle.Secondary)
+            );
+
+            await message.channel.send({ embeds: [embed], components: [row] });
+
+            const filter = i =>
+                ["shutdown_comunity", "shutdown_league"].includes(i.customId) &&
+                i.user.id === message.author.id;
+            const collector = message.channel.createMessageComponentCollector({ filter, time: 15000, max: 1 });
+
+            collector.on("collect", async interaction => {
+                let botName = interaction.customId === "shutdown_comunity" ? "TS Comunity" : "TS League";
+                let pm2Id = interaction.customId === "shutdown_comunity" ? pm2Ids.comunity : pm2Ids.league;
+
+                await interaction.update({
+                    content: `Apagando **${botName}**...`,
+                    embeds: [],
+                    components: []
+                });
+
+                exec(`pm2 stop ${pm2Id}`, (error, stdout, stderr) => {
+                    // No se puede enviar mensaje porque el bot se apaga, pero puedes loguear si quieres
+                });
+            });
+
+            collector.on("end", collected => {
+                if (collected.size === 0) {
+                    message.channel.send("No se recibió confirmación, operación cancelada.");
+                }
+            });
+
         } else if (subcommand === "git") {
             const embed = new EmbedBuilder()
                 .setTitle("Actualizando desde Git")
@@ -60,7 +140,6 @@ module.exports = {
                 if (stderr) {
                     return message.channel.send(`stderr: \`${stderr}\``);
                 }
-                // Limita la longitud del mensaje para Discord (máx 2000 caracteres)
                 const output = stdout.length > 1900 ? stdout.slice(-1900) : stdout;
                 message.channel.send(`\`\`\`bash\n${output}\n\`\`\``);
             });
@@ -70,14 +149,15 @@ module.exports = {
                 .setColor("#9f38f1")
                 .setDescription("Lista de subcomandos disponibles para `dev`:")
                 .addFields(
-                    { name: "reiniciar", value: "Reinicia el bot usando PM2." },
+                    { name: "reiniciar", value: "Reinicia TS Comunity o TS League usando PM2 (requiere confirmación)." },
+                    { name: "apagar", value: "Apaga TS Comunity o TS League usando PM2 (requiere confirmación)." },
                     { name: "git", value: "Hace git pull para traer los últimos cambios del repositorio." },
                     { name: "logs", value: "Muestra los últimos 20 logs del proceso PM2 del bot." },
                     { name: "help", value: "Muestra este mensaje de ayuda." }
                 );
             await message.channel.send({ embeds: [embed] });
         } else {
-            message.reply("Comando no reconocido. Usa `reiniciar`, `git`, `logs` o `help`.");
+            message.reply("Comando no reconocido. Usa `reiniciar`, `apagar`, `git`, `logs` o `help`.");
         }
     }
 };
