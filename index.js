@@ -52,7 +52,6 @@ client.prefixs = new Collection();
 client.aliases = new Collection();
 
 client.login(token).then(async () => {
-  // Cargar eventos, comandos y prefijos
   loadEvents(client);
   loadCommands(client);
   loadPrefix(client);
