@@ -70,8 +70,16 @@ async execute(interaction, client) {
       
         const row = new ActionRowBuilder()
         .addComponents(saludar)
-        
-        await interaction.update({ components: [row] })
+
+try {
+  await interaction.update({ components: [row] })
+} catch (err) {
+  if (interaction.deferred || interaction.replied) {
+    await interaction.followUp({ content: 'No se pudo actualizar el botón.', ephemeral: true }).catch(() => {})
+  } else {
+    await interaction.reply({ content: 'No se pudo actualizar el botón.', ephemeral: true }).catch(() => {})
+  }
+}
         await interaction.followUp({ content: 'El usuario no se encuentra en el servidor', ephemeral: true })
         return
       }
