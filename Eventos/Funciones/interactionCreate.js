@@ -20,7 +20,7 @@ module.exports = {
       command.execute(interaction, client);
 
     }
-    else if (interaction.isSelectMenu()) { 
+    else if (interaction.isStringSelectMenu()) { 
     }
 }
 }

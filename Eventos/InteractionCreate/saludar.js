@@ -30,6 +30,7 @@ async execute(interaction, client) {
   .setEmoji('👋')
   .setLabel('¡Saludar!')
   .setStyle(ButtonStyle.Secondary)
+  .setDisabled(true)
 
   const row = new ActionRowBuilder()
   .addComponents(saludar)
@@ -62,24 +63,7 @@ async execute(interaction, client) {
       try {
         member2 = await interaction.guild.members.fetch(userID)
       } catch(error) {
-        const saludar = new ButtonBuilder()
-        .setCustomId(`saludar-disabled`)
-        .setEmoji('👋')
-        .setLabel('¡Saludar!')
-        .setStyle(ButtonStyle.Secondary)
-      
-        const row = new ActionRowBuilder()
-        .addComponents(saludar)
-
-try {
-  await interaction.update({ components: [row] })
-} catch (err) {
-  if (interaction.deferred || interaction.replied) {
-    await interaction.followUp({ content: 'No se pudo actualizar el botón.', ephemeral: true }).catch(() => {})
-  } else {
-    await interaction.reply({ content: 'No se pudo actualizar el botón.', ephemeral: true }).catch(() => {})
-  }
-}
+        await interaction.update({ components: [row] })
         await interaction.followUp({ content: 'El usuario no se encuentra en el servidor', ephemeral: true })
         return
       }

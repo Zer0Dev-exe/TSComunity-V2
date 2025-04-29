@@ -7,7 +7,7 @@ module.exports = {
 
   async execute(interaction, client) {
     //TICKETS
-    if(interaction.isSelectMenu() ) {
+    if(interaction.isStringSelectMenu() ) {
 
         if(interaction.customId === "select-ticket") {
 
