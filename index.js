@@ -546,7 +546,7 @@ client.on('interactionCreate', async interaction => {
 
 
 // CANALES PARA BORRAR MENSAJES BORrAR EL DE HALLOWEEN
-const canales = ['1112754769472270449']
+const canales = [] //1112754769472270449
 
 async function borrarMensajes() {
     for (const channelId of canales) {
