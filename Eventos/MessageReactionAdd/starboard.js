@@ -47,6 +47,11 @@ module.exports = {
             // Crear una fila de acción para el botón
             const row = new ActionRowBuilder().addComponents(button);
 
+            if (reaction.message.attachments.size > 0) {
+                const attachment = reaction.message.attachments.first(); // Tomamos el primer adjunto
+                    embed.setImage(attachment.url)
+            }
+
             // Enviar el embed y el botón al canal de starboard
             const canal = reaction.message.guild.channels.cache.get(data.CanalStarboard);
             if (canal) {
