@@ -23,6 +23,8 @@ async execute(interaction, client) {
 
   const userID = interaction.customId.replace('saludar-', '')
 
+  if (userID === interaction.user.id) return interaction.reply({ content: 'No te puedes saludar a ti mismo', ephemeral: true })
+
   const saludar = new ButtonBuilder()
   .setCustomId(`saludar-disabled`)
   .setEmoji('👋')
