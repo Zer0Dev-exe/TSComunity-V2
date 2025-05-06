@@ -23,7 +23,7 @@ async function loadCommands(client) {
       }
     }
   
-    client.application.commands.set(commandsArray);
+    await client.guilds.cache.get('1093864130030612521').commands.set(commandsArray);
   }
   
   module.exports = { loadCommands };
