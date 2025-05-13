@@ -12,8 +12,10 @@ module.exports = {
     const invitacionRegex = /(?:https?:\/\/)?(?:www\.)?(?:discord\.gg|discord\.com\/invite)\/\w+/i;
     if (!invitacionRegex.test(message.content)) return;
 
+
     const data = require('../../Esquemas/asociacionesSchema.js');
     const staffData = require('../../Esquemas/staffStats.js');
+    const tareasAsociaciones = require('../../Esquemas/tareasAsociaciones.js'); // Ruta a tasksSchema.js
 
     try {
         const documentos = await data.find({});
@@ -65,7 +67,10 @@ module.exports = {
 -# Para evitar este ping añadete el rol <@&1219196487011930194> en ⁠ <id:customize>.`)
 
         try {
-            await message.channel.send({ embeds: [embed] });
+            await message.channel.send({ embeds: [embed] })
+            const expirationDate = new Date(Date.now() + doc.Renovacion * 86400000); // Tiempo en días -> milisegundos
+            await tareasAsociaciones.create({ channelId: message.channel.id, userId: asignado, expirationDate: expirationDate })
+
         } catch (err) {
             console.error("❌ Error al enviar el mensaje embed:", err);
         }
