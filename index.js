@@ -576,3 +576,52 @@ async function borrarMensajes() {
     }
 }
 borrarMensajes()
+
+const ServidorData = require('./Esquemas/serverinfoSchema.js');
+const RolesStaff = require('./Esquemas/configuracionSv.js');
+setInterval(async () => {
+  try {
+    const servidor = await client.guilds.fetch('1093864130030612521');
+    const miembros = servidor.memberCount;
+    const boosts = servidor.premiumSubscriptionCount;
+
+    // Obtener los roles staff desde la base de datos
+    const rolesStaffDoc = await RolesStaff.findOne({});
+    const rolesStaffArray = rolesStaffDoc?.RolesStaff || [];
+
+    // Asegúrate de que los miembros estén en caché
+    await servidor.members.fetch();
+
+    // Filtrar miembros staff y obtener info detallada
+    const staffInfo = await Promise.all(
+    servidor.members.cache
+      .filter(member => member.roles.cache.some(role => rolesStaffArray.includes(role.id)))
+      .map(async member => {
+        // Asegúrate de tener el banner actualizado
+        await member.user.fetch();
+        const staffRole = member.roles.cache.find(role => rolesStaffArray.includes(role.id));
+        return {
+          displayName: member.displayName,
+          avatar: member.user.displayAvatarURL({ dynamic: true, size: 512 }),
+          banner: member.user.bannerURL({ dynamic: true, size: 512 }) || null,
+          roleName: staffRole ? staffRole.name : null,
+          color: staffRole ? staffRole.hexColor : null // <-- color HEX del rol staff
+        };
+      })
+  );
+
+    // Guardar en la base de datos (solo un documento global)
+    await ServidorData.findOneAndUpdate(
+      {},
+      {
+        Miembros: miembros,
+        Boosts: boosts,
+        Staffs: staffInfo // Ahora es un array de objetos con la info detallada
+      },
+      { upsert: true, new: true }
+    );
+
+  } catch (error) {
+    console.error('Error al obtener el servidor o actualizar la base de datos:', error);
+  }
+}, 5000);
