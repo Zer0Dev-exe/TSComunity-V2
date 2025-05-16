@@ -588,6 +588,7 @@ setInterval(async () => {
     const now = Date.now(); // Hora actual en milisegundos
 
     for (const task of tasks) {
+      console.log(task)
       const expirationTime = new Date(task.expirationDate).getTime();
 
       if (expirationTime <= now) {

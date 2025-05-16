@@ -51,7 +51,6 @@ async execute(interaction, client) {
       }
 
       const displayName2 = member2.displayName
-      console.log(displayName2)
 
       await interaction.update({
           components: [row]
