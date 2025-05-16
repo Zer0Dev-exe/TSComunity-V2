@@ -576,3 +576,39 @@ async function borrarMensajes() {
     }
 }
 borrarMensajes()
+
+
+const tareasAsociaciones = require('../../Esquemas/tareasAsociaciones.js'); // Asegúrate de usar la ruta correcta
+
+// Verificar tareas pendientes cada 10 minutos
+setInterval(async () => {
+  try {
+    // Obtener todas las tareas desde la base de datos
+    const tasks = await tareasAsociaciones.find({});
+    const now = Date.now(); // Hora actual en milisegundos
+
+    for (const task of tasks) {
+      console.log(task)
+      const expirationTime = new Date(task.expirationDate).getTime();
+
+      if (expirationTime <= now) {
+        // Si la tarea ya expiró, enviar el mensaje y eliminarla
+        try {
+          const encargado = await client.users.fetch(task.userId); // Obtener el usuario encargado
+          if (encargado) {
+            // Enviar mensaje al encargado
+            await encargado.send(
+              `🔔 ¡<@${task.userId}>! Ya es hora de renovar tu asociación asignada, <#${task.channelId}>.`
+            );
+          }
+          // Eliminar la tarea después de completarse
+          await tareasAsociaciones.deleteOne({ _id: task._id });
+        } catch (err) {
+          console.error(`❌ Error al enviar mensaje al encargado para el canal ${task.channelId}:`, err);
+        }
+      }
+    }
+  } catch (error) {
+    console.error('❌ Error al recuperar las tareas pendientes:', error);
+  }
+}, 1000 * 60 * 10); // Ejecutar cada 10 minutos
