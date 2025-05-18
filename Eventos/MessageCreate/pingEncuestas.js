@@ -15,7 +15,7 @@ module.exports = {
 
     console.log(poll)
 
-    message.reply({ content: `${poll.question} <@&1173984415836291132>`, allowedMentions: { parse: ['roles'] }});
+    message.reply({ content: `${poll.question.text} <@&1173984415836291132>`, allowedMentions: { parse: ['roles'] }});
   
   }
 }
