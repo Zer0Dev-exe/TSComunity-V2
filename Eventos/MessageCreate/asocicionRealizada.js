@@ -24,7 +24,7 @@ module.exports = {
 
         // Cooldown de 10 minutos por canal
         const lastUsed = cooldowns.get(message.channel.id);
-        if (lastUsed && Date.now() - lastUsed < 10 * 60 * 1000) return;
+        if (lastUsed && Date.now() - lastUsed < 10 * 60 * 1000) //return
         cooldowns.set(message.channel.id, Date.now());
 
         const renovacionTimestamp = Math.floor((Date.now() + doc.Renovacion * 86400000) / 1000);
@@ -69,6 +69,12 @@ module.exports = {
         try {
             await message.channel.send({ embeds: [embed] })
             const expirationDate = new Date(Date.now() + doc.Renovacion * 86400000); // Tiempo en días -> milisegundos
+            console.log("🛠️ Creando tarea:", {
+  channelId: message.channel.id,
+  userId: asignado,
+  expirationDate: new Date(Date.now() + doc.Renovacion * 86400000)
+});
+
             await tareasAsociaciones.create({ channelId: message.channel.id, userId: asignado, expirationDate: expirationDate })
 
         } catch (err) {
