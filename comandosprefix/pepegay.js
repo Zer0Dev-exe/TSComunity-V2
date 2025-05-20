@@ -10,7 +10,7 @@ module.exports = {
         try {
         const data = await schema.find({})
 
-        message.channel.send(data || No hay data)
+        message.channel.send(data || 'No hay data')
         }
     }
  };
