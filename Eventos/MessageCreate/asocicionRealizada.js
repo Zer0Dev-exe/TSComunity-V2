@@ -68,12 +68,8 @@ module.exports = {
 
         try {
             await message.channel.send({ embeds: [embed] })
-            const expirationDate = new Date(Date.now() + doc.Renovacion * 86400000); // Tiempo en días -> milisegundos
-            console.log("🛠️ Creando tarea:", {
-  channelId: message.channel.id,
-  userId: asignado,
-  expirationDate: new Date(Date.now() + doc.Renovacion * 86400000)
-});
+            //const expirationDate = new Date(Date.now() + doc.Renovacion * 86400000); // Tiempo en días -> milisegundos
+            const expirationDate = new Date(Date.now()); // Tiempo en días -> milisegundos
 
             await tareasAsociaciones.create({ channelId: message.channel.id, userId: asignado, expirationDate: expirationDate })
 
