@@ -11,6 +11,8 @@ module.exports = {
         const data = await schema.find({})
 
         message.channel.send(data || 'No hay data')
+        } catch(error) {
+            console.log(e)
         }
     }
  };
