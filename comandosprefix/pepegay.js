@@ -10,7 +10,14 @@ module.exports = {
         try {
         const data = await schema.find({})
 
-        message.channel.send(data || 'No hay data')
+        const resultado = data.map((d, i) => {
+  return `#${i + 1}
+• Canal: \`${d.channelId}\`
+• Usuario: <@${d.userId}>
+• Expira: <t:${Math.floor(new Date(d.expirationDate).getTime() / 1000)}:R>\n`;
+}).join("\n");
+
+        message.channel.send(resultado)
         } catch(error) {
             console.log(error)
         }
