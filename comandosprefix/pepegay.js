@@ -12,7 +12,7 @@ module.exports = {
 
         message.channel.send(data || 'No hay data')
         } catch(error) {
-            console.log(e)
+            console.log(error)
         }
     }
  };
