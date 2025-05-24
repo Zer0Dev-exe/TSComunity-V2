@@ -10,9 +10,11 @@ module.exports = {
 
         const data = await schema.find({ })
 
-        const messageContent = data.map(doc => {
+        const idsPermitidos = ['1018285858362769608', '1036203420891238412'];
+
+
+        const messageContent = data.filter(doc => idsPermitidos.includes(doc.userId)).map(doc => {
             const unixTime = Math.floor(doc.expirationDate.getTime() / 1000)
-            if (userID != '1018285858362769608' && userID != '1036203420891238412') return
 
             return `<@${doc.userId}> → <#${doc.channelId}> - <t:${unixTime}:R>`
         }).join('\n')
