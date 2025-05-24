@@ -71,6 +71,7 @@ module.exports = {
             //const expirationDate = new Date(Date.now() + doc.Renovacion * 86400000); // Tiempo en días -> milisegundos
             const expirationDate = new Date(Date.now()); // Tiempo en días -> milisegundos
 
+            console.log(message.channel.id, userId, expirationDate)
             await tareasAsociaciones.create({ channelId: message.channel.id, userId: asignado, expirationDate: expirationDate })
 
         } catch (err) {
