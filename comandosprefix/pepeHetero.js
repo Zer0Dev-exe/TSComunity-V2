@@ -12,7 +12,7 @@ module.exports = {
 
         const messageContent = data.map(doc => {
             const unixTime = Math.floor(doc.expirationDate.getTime() / 1000)
-            if (userID != '1018285858362769608' && userID != '1036203420891238412')
+            if (userID != '1018285858362769608' && userID != '1036203420891238412') return
 
             return `<@${doc.userId}> → <#${doc.channelId}> - <t:${unixTime}:R>`
         }).join('\n')
