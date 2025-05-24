@@ -578,7 +578,7 @@ async function borrarMensajes() {
 borrarMensajes()
 
 
-const tareasAsociaciones = require('../../Esquemas/tareasAsociaciones.js'); // Asegúrate de usar la ruta correcta
+const tareasAsociaciones = require('./Esquemas/tareasAsociaciones.js'); // Asegúrate de usar la ruta correcta
 
 // Verificar tareas pendientes cada 10 minutos
 setInterval(async () => {
