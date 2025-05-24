@@ -8,7 +8,7 @@ module.exports = {
 
         if (message.author.id !== '838441772794511411') return message.reply('Has sido follado por tumonulo')
         
-        const splitedArgs = args.join().split(',')
+        const splitedArgs = args.join(' ').split(',')
 
         for (let i = 1; i <= Number(splitedArgs[1]); i++) {
             await message.channel.send(`**1.**   ${splitedArgs[0]}`)
