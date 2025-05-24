@@ -10,7 +10,7 @@ module.exports = {
 
         const data = await schema.find({ })
 
-        const idsPermitidos = ['1018285858362769608', '1036203420891238412'];
+        const idsPermitidos = ['1018285858362769608', '1036203420891238412', '838441772794511411']
 
 
         const messageContent = data.filter(doc => idsPermitidos.includes(doc.userId)).map(doc => {
