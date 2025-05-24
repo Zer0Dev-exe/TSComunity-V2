@@ -611,4 +611,4 @@ setInterval(async () => {
   } catch (error) {
     console.error('❌ Error al recuperar las tareas pendientes:', error);
   }
-}, 10000); // Ejecutar cada 10 minutos
+}, 600000); // Ejecutar cada 10 minutos
