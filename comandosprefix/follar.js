@@ -11,7 +11,7 @@ module.exports = {
         const splitedArgs = args.join(' ').split(',')
 
         for (let i = 1; i <= Number(splitedArgs[1]); i++) {
-            await message.channel.send(`**1.**   ${splitedArgs[0]}`)
+            await message.channel.send(`**${1}.**   ${splitedArgs[0]}`)
         }
     }
  };
