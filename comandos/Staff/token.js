@@ -49,8 +49,12 @@ module.exports = {
             }
             const token = generateToken();
             await apiTokenData.create({ Usuario: usuario, Token: token });
-            await interaction.user.send(`Token creado para **${usuarioObj.tag}** (\`${usuario}\`):\n\`${token}\``);
-            return interaction.reply({ content: 'Token creado y enviado por DM.', ephemeral: true });
+            try {
+                await usuarioObj.send(`✅ **Se te ha asignado un nuevo token:**\n\`${token}\``);
+            } catch (err) {
+                return interaction.reply({ content: 'No pude enviarle DM al usuario (puede que tenga los DMs cerrados).', ephemeral: true });
+            }
+            return interaction.reply({ content: 'Token creado y enviado por DM al usuario seleccionado.', ephemeral: true });
         }
 
         if (sub === 'update') {
@@ -61,19 +65,27 @@ module.exports = {
                 { new: true }
             );
             if (!updated) {
-                return interaction.reply({ content: 'Usuario no encontrado.', ephemeral: true });
+                return interaction.reply({ content: 'Usuario no encontrado en la base de datos.', ephemeral: true });
             }
-            await interaction.user.send(`Token actualizado para **${usuarioObj.tag}** (\`${usuario}\`):\n\`${token}\``);
-            return interaction.reply({ content: 'Token actualizado y enviado por DM.', ephemeral: true });
+            try {
+                await usuarioObj.send(`🔄 **Tu token ha sido actualizado:**\n\`${token}\``);
+            } catch (err) {
+                return interaction.reply({ content: 'No pude enviarle DM al usuario (puede que tenga los DMs cerrados).', ephemeral: true });
+            }
+            return interaction.reply({ content: 'Token actualizado y enviado por DM al usuario seleccionado.', ephemeral: true });
         }
 
         if (sub === 'delete') {
             const deleted = await apiTokenData.findOneAndDelete({ Usuario: usuario });
             if (!deleted) {
-                return interaction.reply({ content: 'Usuario no encontrado.', ephemeral: true });
+                return interaction.reply({ content: 'Usuario no encontrado en la base de datos.', ephemeral: true });
             }
-            await interaction.user.send(`Token eliminado para **${usuarioObj.tag}** (\`${usuario}\`).`);
-            return interaction.reply({ content: 'Token eliminado y notificado por DM.', ephemeral: true });
+            try {
+                await usuarioObj.send(`❌ **Tu token ha sido eliminado.** Si crees que esto es un error, contacta al soporte.`);
+            } catch (err) {
+                return interaction.reply({ content: 'No pude enviarle DM al usuario (puede que tenga los DMs cerrados).', ephemeral: true });
+            }
+            return interaction.reply({ content: 'Token eliminado y notificado por DM al usuario seleccionado.', ephemeral: true });
         }
     }
 };
