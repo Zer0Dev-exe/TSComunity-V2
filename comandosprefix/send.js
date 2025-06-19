@@ -12,7 +12,7 @@ module.exports = {
 
         if (!hasPermission) return message.reply('No tienes permisos webon')
 
-        if (!args) return message.reply('Tienes q poner algun argumento webon')
+        if (!args.length) return message.reply('Tienes q poner algun argumento webon')
 
         if (args[0] === '1') {
             const embeds = [
@@ -87,6 +87,11 @@ module.exports = {
                 inline: false,
             },
         ),
+];
+
+message.reply({ embeds: embeds })
+        } else if (args[0] === '2') {
+            const embeds = [
     new EmbedBuilder()
         .setColor(4121252)
         .setTitle("Renovaciones de asociaciones :incoming_envelope:")
@@ -118,7 +123,6 @@ module.exports = {
             },
         ),
 ];
-
 message.reply({ embeds: embeds })
         }
     }
