@@ -117,7 +117,7 @@ message.channel.send({ embeds: embeds })
                 "4. Publicar la plantilla en el canal correspondiente del servidor.\n" +
                 "5. El bot del servidor enviará automáticamente un mensaje mencionando al representante, al encargado y la fecha de la próxima renovación."
             }
-        )
+        ),
 
     new EmbedBuilder()
         .setColor(3447003)
