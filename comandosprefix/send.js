@@ -18,7 +18,7 @@ module.exports = {
             const embeds = [
     new EmbedBuilder()
         .setColor(16248066)
-        .setTitle("Jerarquía de roles :bust_in_silhouette:")
+        .setTitle("Jerarquía de roles <:z_AdministratorRole:1358168808359202937>")
         .setDescription("🔹 <@&1107331844866846770> – Staffs en fase de prueba de 15 días de duración para determinar si entran al equipo como <@&1107329826982989906>es.\n\n🔹 <@&1107329826982989906> – Staffs oficiales del servidor que se encargan de moderar y mantener un ambiente ordenado.\n\n🔹 <@&1202685031219200040> – Staffs responsables de instruir a los <@&1107329826982989906>es y orientar a los <@&1107331844866846770>es durante su periodo de prueba.\n\n🔹 <@&1363927756617941154> – Staffs responsables de supervisar todo el equipo y trabajar activamente con el equipo administrativo del servidor.\n\n🔹 <@&1106553536839422022>, <@&1107345436492185753> y <@&1106553480803516437> – Equipo administrativo del servidor."),
     new EmbedBuilder()
         .setColor(2224400)
@@ -32,7 +32,7 @@ module.exports = {
             },
             {
                 name: "Criterios de descenso <:spray_stuntshow2:1214969708248309841>",
-                value: "🔹 Generar Problemas\n\n🔹 Faltar el Respeto\n\n🔹 No Cumplir con tu Rol\n\n🔹 Falta de Participación",
+                value: "🔹 Generar Problemas\n\n🔹 Faltar el Respeto\n\n🔹 No realizar tareas\n\n🔹 Falta de Participación",
                 inline: true,
             },
         ),
@@ -42,33 +42,33 @@ module.exports = {
         .setDescription("Para mantener un ambiente positivo y seguro para todos, es esencial cumplir con las directrices establecidas en el canal <#1102632956490690661>. La siguiente guía detalla el sistema de sanciones que se aplica cuando estas reglas son incumplidas.")
         .setFields(
             {
-                name: "Warn",
-                value: "Es una llamada de atención inicial que se emite ante infracciones leves. Su objetivo es informar al usuario que ha incumplido una norma y advertirle sobre la posibilidad de sanciones más graves si su comportamiento no mejora.\n\n**Sistema de Warns** 🚨",
+                name: "Warn <:Warning:1114310778980421682>",
+                value: "Llamada de atención que se emite ante infracciones leves. Su objetivo es informar que se ha incumplido una norma y advertir sobre la posibilidad de sanciones más graves si la conducta no mejora.\n\nSistema de Warns <a:X_warn:1256225995673964574>",
                 inline: false,
             },
             {
-                name: "1 Warn",
-                value: "1 hora mute",
+                name: "1 Warn <:Warning:1114310778980421682>",
+                value: "1 hora mute <:mute:1385209518224310373>",
                 inline: true,
             },
             {
-                name: "2 Warns",
-                value: "12 horas mute",
+                name: "2 Warns <:Warning:1114310778980421682>",
+                value: "12 horas mute <:mute:1385209518224310373>",
                 inline: true,
             },
             {
-                name: "3 Warns",
-                value: "24 horas mute",
+                name: "3 Warns <:Warning:1114310778980421682>",
+                value: "24 horas mute <:mute:1385209518224310373>",
                 inline: true,
             },
             {
-                name: "4 Warns",
-                value: "72 horas mute mute",
+                name: "4 Warns <:Warning:1114310778980421682>",
+                value: "72 horas mute <:mute:1385209518224310373>",
                 inline: true,
             },
             {
-                name: "5 Warns",
-                value: "Baneo",
+                name: "5 Warns <:Warning:1114310778980421682>",
+                value: "Baneo <:tr:997264447091523584>",
                 inline: true,
             },
             {
@@ -77,25 +77,48 @@ module.exports = {
                 inline: true,
             },
             {
-                name: "Mute",
-                value: "Restringe temporalmente la capacidad del usuario para comunicarse. Se aplica en casos como:\n> **Interrupciones constantes o spam.**\n> **Uso de lenguaje inapropiado de forma reiterada.**\n> **Reincidencia tras haber recibido una advertencia.**",
+                name: "Mute <:mute:1385209518224310373>",
+                value: "Sanción temporal que restringe la capacidad de comunicarse. El usuario solo puede ver el canal de <#1108017147952771112>. Se aplica en situaciones como actividad sospechosa, hackeos o faltas graves tras advertencias previas.",
                 inline: false,
             },
             {
-                name: "Ban",
-                value: "Es la sanción más severa y prohíbe el acceso al servidor. Se aplica por acumulación de sanciones o de forma inmediata por infracciones graves como:\n> **Acoso, amenazas o insultos graves.**\n> **Actividades maliciosas como hackeo, doxxing o difusión de malware.**\n> **Dañar intencionadamente el funcionamiento de la comunidad. **",
+                name: "Ban <:tr:997264447091523584>",
+                value: "Sanción permanente que bloquea el acceso al servidor. Se aplica por acumulación de faltas o de forma inmediata ante infracciones graves como acoso, amenazas, actividades maliciosas o sabotaje de la comunidad.",
                 inline: false,
             },
         ),
 ];
 
-message.reply({ embeds: embeds })
+message.channel.send({ embeds: embeds })
         } else if (args[0] === '2') {
             const embeds = [
     new EmbedBuilder()
         .setColor(4121252)
-        .setTitle("Renovaciones de asociaciones :incoming_envelope:")
-        .setDescription("Una vez un miembro entra al equipo de <@&1107329826982989906>es, se le asignan una serie de asociaciones que deberá renovar en intervalos de tiempo fijos, según el periodo de renovación establecido para cada una.\n\n\n 🔹 **Escribir directamente al representante de la asociación:** Enviamos un mensaje directo al representante, indicando que venimos de TS Community y queremos renovar con su servidor. Preguntamos si es la misma plantilla (si es diferente, la pedimos). Luego, enviamos la plantilla en el canal del servidor y el bot del servidor enviará de forma automática un mensaje mencionando al representante, al encargado y por último indicando la fecha de la siguiente renovación\n\n🔹 **Abrir un ticket en el servidor con el que queremos renovar:** Debemos unirnos al servidor con el que queremos renovar, abrir un ticket tipo alianza y decir que venimos de TS Community para renovar. Preguntamos si es la misma plantilla (si es diferente, la pedimos). Luego, publicamos la plantilla en el canal y el bot del servidor enviará de forma automática un mensaje mencionando al representante, al encargado y por último indicando la fecha de la siguiente renovación"),
+        .setTitle("Renovación de asociaciones :incoming_envelope:")
+        .setDescription(
+            "Una vez que un staff entra al equipo de <@&1107329826982989906>, se le asignan una serie de asociaciones que deberá renovar en intervalos de tiempo fijos, según el periodo de renovación establecido para cada una.\n\n" +
+            "Puedes consultar qué asociaciones tiene cada staff en <#1339987513401413735>. Cuando llegue el momento de renovar, **el bot te avisará automáticamente por mensaje directo**, así que no necesitas preocuparte por recordarlo. Además, cuando renueves, el bot enviará un mensaje al canal de asociaciones con la fecha, el representante, el encargado y los puntos obtenidos. Estos puntos se suman a tu marcador y sirven para generar un ranking que se puede revisar con el comando </asociaciones leaderboard:1341827712402329663>."
+        )
+        .setFields(
+            {
+                name: "Escribir directamente al representante de la asociación",
+                value:
+                "1. Enviar un mensaje directo al representante indicando que venimos de **TS Community** para renovar.\n" +
+                "2. Preguntar si se usa la misma plantilla que antes. Si ha cambiado, pedir la nueva.\n" +
+                "3. Publicar la plantilla en el canal correspondiente del servidor.\n" +
+                "4. El bot del servidor enviará automáticamente un mensaje mencionando al representante, al encargado y la fecha de la próxima renovación."
+            },
+            {
+                name: "Abrir un ticket en el servidor con el que queremos renovar",
+                value:
+                "1. Unirse al servidor con el que se desea renovar.\n" +
+                "2. Abrir un ticket de tipo **alianza** y explicar que venimos de **TS Community** para renovar.\n" +
+                "3. Preguntar si se usa la misma plantilla. Si ha cambiado, pedir la nueva.\n" +
+                "4. Publicar la plantilla en el canal correspondiente del servidor.\n" +
+                "5. El bot del servidor enviará automáticamente un mensaje mencionando al representante, al encargado y la fecha de la próxima renovación."
+            }
+        )
+
     new EmbedBuilder()
         .setColor(3447003)
         .setTitle("Comandos")
@@ -117,13 +140,13 @@ message.reply({ embeds: embeds })
                 inline: false,
             },
             {
-                name: "Otros [emoji]",
+                name: "Otros <a:eyethinkyouneedtocalmdown:1299594545180446742> ",
                 value: "`.leaderboard wlc`\n> Permisos: todos los miembros del servidor.\n> Uso: `.leaderboard wlc`\n\n`.form`\n> Permisos: todos los miembros del servidor.\n> Uso: `.form`\n\n`t!revivirchat`\n> Permisos: <@&1107331844866846770> y superior.\n> Uso: `t!revivirchat <mensaje>`",
                 inline: false,
             },
         ),
 ];
-message.reply({ embeds: embeds })
+message.channel.send({ embeds: embeds })
         }
     }
  };
