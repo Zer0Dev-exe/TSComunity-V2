@@ -14,6 +14,8 @@ module.exports = {
 
         if (!args.length) return message.reply('Tienes q poner algun argumento webon')
 
+        await message.delete()
+        
         if (args[0] === '1') {
             const embeds = [
     new EmbedBuilder()
