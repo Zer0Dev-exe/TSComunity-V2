@@ -20,7 +20,7 @@ module.exports = {
             const embeds = [
     new EmbedBuilder()
         .setColor(16248066)
-        .setTitle("Jerarquía de roles <:z_AdministratorRole:1358168808359202937>")
+        .setTitle("Jerarquía de roles <:staff:1385559419948896276>")
         .setDescription("🔹 <@&1107331844866846770> – Staffs en fase de prueba de 15 días de duración para determinar si entran al equipo como <@&1107329826982989906>es.\n\n🔹 <@&1107329826982989906> – Staffs oficiales del servidor que se encargan de moderar y mantener un ambiente ordenado.\n\n🔹 <@&1202685031219200040> – Staffs responsables de instruir a los <@&1107329826982989906>es y orientar a los <@&1107331844866846770>es durante su periodo de prueba.\n\n🔹 <@&1363927756617941154> – Staffs responsables de supervisar todo el equipo y trabajar activamente con el equipo administrativo del servidor.\n\n🔹 <@&1106553536839422022>, <@&1107345436492185753> y <@&1106553480803516437> – Equipo administrativo del servidor."),
     new EmbedBuilder()
         .setColor(2224400)
@@ -45,7 +45,7 @@ module.exports = {
         .setFields(
             {
                 name: "Warn <:warn:1385557884548546640>",
-                value: "Llamada de atención que se emite ante infracciones leves. Su objetivo es informar que se ha incumplido una norma y advertir sobre la posibilidad de sanciones más graves si la conducta no mejora.\n\nSistema de Warns <a:X_warn:1256225995673964574>",
+                value: "Llamada de atención que se emite ante infracciones leves. Su objetivo es informar que se ha incumplido una norma y advertir sobre la posibilidad de sanciones más graves si la conducta no mejora.\n\n###Sistema de Warns <a:warns:1256225995673964574>",
                 inline: false,
             },
             {
@@ -70,7 +70,7 @@ module.exports = {
             },
             {
                 name: "5 Warns <:warn:1385557884548546640>",
-                value: "Baneo <:ban:1385557552724709516>",
+                value: "Baneo <a:ban:1385557552724709516>",
                 inline: true,
             },
             {
@@ -84,7 +84,7 @@ module.exports = {
                 inline: false,
             },
             {
-                name: "Ban <:ban:1385557552724709516>",
+                name: "Ban <a:ban:1385557552724709516>",
                 value: "Sanción permanente que bloquea el acceso al servidor. Se aplica por acumulación de faltas o de forma inmediata ante infracciones graves como acoso, amenazas, actividades maliciosas o sabotaje de la comunidad.",
                 inline: false,
             },
@@ -99,25 +99,29 @@ message.channel.send({ embeds: embeds })
         .setTitle("Renovación de asociaciones <:caza:1385557933693337620>")
         .setDescription(
             "Una vez que un staff entra al equipo de <@&1107329826982989906>, se le asignan una serie de asociaciones que deberá renovar en intervalos de tiempo fijos, según el periodo de renovación establecido para cada una.\n\n" +
-            "Puedes consultar qué asociaciones tiene cada staff en <#1339987513401413735>. Cuando llegue el momento de renovar, **el bot te avisará automáticamente por mensaje directo**, así que no necesitas preocuparte por recordarlo. Además, cuando renueves, el bot enviará un mensaje al canal de asociaciones con la fecha, el representante, el encargado y los puntos obtenidos. Estos puntos se suman a tu marcador y sirven para generar un ranking que se puede revisar con el comando </asociaciones leaderboard:1341827712402329663>."
+            "Puedes consultar qué asociaciones tiene cada staff en <#1339987513401413735>. Cuando llegue el momento de renovar, el bot <@1292238307656470621> te avisará automáticamente por MD. Además, cuando renueves, el bot enviará un mensaje al canal de asociaciones con la fecha, el representante, el encargado y los puntos obtenidos. Estos puntos se suman a tu marcador y sirven para generar un ranking que se puede revisar con el comando </asociaciones leaderboard:1341827712402329663>.\n\n###Métodos de renovación:"
         )
         .setFields(
             {
                 name: "Escribir directamente al representante de la asociación",
                 value:
-                "1. Enviar un mensaje directo al representante indicando que venimos de **TS Community** para renovar.\n" +
-                "2. Preguntar si se usa la misma plantilla que antes. Si ha cambiado, pedir la nueva.\n" +
-                "3. Publicar la plantilla en el canal correspondiente del servidor.\n" +
-                "4. El bot del servidor enviará automáticamente un mensaje mencionando al representante, al encargado y la fecha de la próxima renovación."
+                "1. Enviar un mensaje directo al representante indicando que vienes de TS Comunity Brawl para renovar.\n" +
+                "2. Pregunta si se usa la misma plantilla que antes. Si ha cambiado, pide la nueva.\n" +
+                "3. Asegurate de que ellos publican nuestra <#1269721664783126641> antes de tu publicar la suya.\n" +
+                "4. Publica su la plantilla en el canal correspondiente del servidor.\n" +
+                "5. El bot del servidor enviará automáticamente un mensaje mencionando al representante, al encargado y la fecha de la próxima renovación.",
+                inline: true
             },
             {
                 name: "Abrir un ticket en el servidor con el que queremos renovar",
                 value:
-                "1. Unirse al servidor con el que se desea renovar.\n" +
-                "2. Abrir un ticket de tipo **alianza** y explicar que venimos de **TS Community** para renovar.\n" +
+                "1. Únete al servidor con el que necesitas renovar.\n" +
+                "2. Abrir un ticket de tipo alianza/renovación y explicar que vienes de TS Comunity Brawl para renovar.\n" +
                 "3. Preguntar si se usa la misma plantilla. Si ha cambiado, pedir la nueva.\n" +
-                "4. Publicar la plantilla en el canal correspondiente del servidor.\n" +
-                "5. El bot del servidor enviará automáticamente un mensaje mencionando al representante, al encargado y la fecha de la próxima renovación."
+                "4. Asegurate de que ellos publican nuestra <#1269721664783126641> antes de tu publicar la suya.\n" +
+                "5. Publica su la plantilla en el canal correspondiente del servidor.\n" +
+                "6. El bot del servidor enviará automáticamente un mensaje mencionando al representante, al encargado y la fecha de la próxima renovación.",
+                inline: true
             }
         ),
 
@@ -137,13 +141,13 @@ message.channel.send({ embeds: embeds })
                 inline: false,
             },
             {
-                name: "Sorteos <:sorteos:1385557593124114562>",
+                name: "Sorteos <a:sorteos:1385557593124114562>",
                 value: "Para realizar sorteos es necesario el rol de <@&1222993479110492264> que debe ser pedido al equipo administrativo.\n\n`a!gstart`\n> Permisos: <@&1222993479110492264> y superior.\n> Uso: `.a!gstart <duración> <ganadores> <premio>`\n\n`a!greroll`\n> Permisos: <@&1222993479110492264> y superior.\n> Uso: `.a!greroll`\n\n`a!gend`\n> Permisos: <@&1222993479110492264> y superior.\n> Uso: `.a!gend`",
                 inline: false,
             },
             {
                 name: "Otros <a:ojos:1385557634220036096> ",
-                value: "`.leaderboard wlc`\n> Permisos: todos los miembros del servidor.\n> Uso: `.leaderboard wlc`\n\n`.form`\n> Permisos: todos los miembros del servidor.\n> Uso: `.form`\n\n`t!revivirchat`\n> Permisos: <@&1107331844866846770> y superior.\n> Uso: `t!revivirchat <mensaje>`",
+                value: "`.form`\n> Permisos: todos los miembros del servidor.\n> Uso: `.form`\n\n`t!leaderboard wlc`\n> Permisos: todos los miembros del servidor.\n> Uso: `t!leaderboard wlc`\n\n`t!revivirchat`\n> Permisos: @Staff en Pruebas y superior.\n> Uso: `t!revivirchat <mensaje>`",
                 inline: false,
             },
         ),
