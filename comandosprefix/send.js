@@ -21,8 +21,8 @@ module.exports = {
     new EmbedBuilder()
         .setColor(16248066)
         .setTitle("Jerarquía de roles <:staff:1385559419948896276>")
-        .setDescription("- <@&1107331844866846770> – Staffs en fase de prueba de 15 días de duración para determinar si entran al equipo como <@&1107329826982989906>es.\n\n- <@&1107329826982989906> – Staffs oficiales del servidor que se encargan de moderar y mantener un ambiente ordenado.\n\n- <@&1202685031219200040> – Staffs responsables de instruir a los <@&1107329826982989906>es y orientar a los <@&1107331844866846770>es durante su periodo de prueba.\n\n🔹 <@&1363927756617941154> – Staffs responsables de supervisar todo el equipo y trabajar activamente con el equipo administrativo del servidor.\n\n🔹 <@&1106553536839422022>, <@&1107345436492185753> y <@&1106553480803516437> – Equipo administrativo del servidor."),
-    new EmbedBuilder()
+        .setDescription("- <@&1107331844866846770> – Staffs en fase de prueba de 15 días de duración para determinar si entran al equipo como <@&1107329826982989906>es.\n\n- <@&1107329826982989906> – Staffs oficiales del servidor que se encargan de moderar y mantener un ambiente ordenado.\n\n- <@&1202685031219200040> – Staffs responsables de instruir a los <@&1107329826982989906>es y orientar a los <@&1107331844866846770>es durante su periodo de prueba.\n\n<@&1363927756617941154>\n> Staffs responsables de supervisar todo el equipo y trabajar activamente con el equipo administrativo del servidor.\n\n🔹 <@&1106553536839422022>, <@&1107345436492185753> y <@&1106553480803516437> – Equipo administrativo del servidor."),
+        new EmbedBuilder()
         .setColor(2224400)
         .setTitle("Criterios de ascenso / descenso 📝")
         .setDescription("Los ascensos y descensos no tienen una fecha fija, pueden variar dependiendo del momento y las necesidades del servidor. Aun así, suelen tomarse periodos mensuales como referencia.\n\nLo que más valoramos a la hora de ascender es la iniciativa de proponer ideas, impulsar nuevos proyectos y tener la motivación de sacar adelante todo lo que pueda mejorar el servidor.\n")
