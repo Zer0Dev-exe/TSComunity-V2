@@ -45,7 +45,7 @@ module.exports = {
         .setFields(
             {
                 name: "Warn <:warn:1385557884548546640>",
-                value: "Llamada de atención que se emite ante infracciones leves. Su objetivo es informar que se ha incumplido una norma y advertir sobre la posibilidad de sanciones más graves si la conducta no mejora.\n\n**Sistema de Warns <a:warns:1385559677894393877**>",
+                value: "Llamada de atención que se emite ante infracciones leves. Su objetivo es informar que se ha incumplido una norma y advertir sobre la posibilidad de sanciones más graves si la conducta no mejora.\n\n**Sistema de Warns <a:warns:1385559677894393877>**",
                 inline: false,
             },
             {
