@@ -154,17 +154,7 @@ message.channel.send({ embeds: embeds })
 ];
 message.channel.send({ embeds: embeds })
         } else if (args[0] === 'normas') {
-
-
-            const image = new MediaGalleryItemBuilder()
-                .setURL('https://media.discordapp.net/attachments/1300019620815568906/1300028312445386752/Copy_of_Copy_of_POSTULACIONES_1.png?ex=686258b7&is=68610737&hm=b8fb73f2d4c5c4d0a950edf69c3c8c8284e98681b34d981450daaf2309ec81a4&format=webp&quality=lossless&width=792&height=198&')
-                .setDescription('normas')
             
-            const mediaGallery = new MediaGalleryBuilder()
-                .setId(1)
-                .addItems([image])
-            
-            const separator = new SeparatorBuilder()
 
             const text = new TextDisplayBuilder().setContent(`
                 **Normas** :scroll:
@@ -186,6 +176,16 @@ message.channel.send({ embeds: embeds })
                 > No se permite ningún tipo de **contenido malicioso**, esto incluye: el phising, capturadores de IP, viruses...
             `)
 
+            const separator = new SeparatorBuilder()
+
+            const image = new MediaGalleryItemBuilder()
+                .setURL('https://media.discordapp.net/attachments/1300019620815568906/1300028312445386752/Copy_of_Copy_of_POSTULACIONES_1.png?ex=686258b7&is=68610737&hm=b8fb73f2d4c5c4d0a950edf69c3c8c8284e98681b34d981450daaf2309ec81a4&format=webp&quality=lossless&width=792&height=198&')
+                .setDescription('normas')
+            
+            const mediaGallery = new MediaGalleryBuilder()
+                .setId(1)
+                .addItems([image])
+
             const container = new ContainerBuilder()
                 .addMediaGalleryComponents([mediaGallery])
                 .addSeparatorComponents(separator)
@@ -193,8 +193,8 @@ message.channel.send({ embeds: embeds })
                 .setAccentColor(16749062)
 
             await message.channel.send({
-            components: [container],
-            flags: MessageFlags.IsComponentsV2
+                components: [container],
+                flags: MessageFlags.IsComponentsV2
             })
         }
     }
