@@ -60,7 +60,7 @@ module.exports = {
             },
             {
                 name: "3 Warns <:warn:1385557884548546640>",
-                value: "24 horas mute <:mute:1385209518224310373>",
+                value: "24 horas mute <:mute:1385557781721120880>",
                 inline: true,
             },
             {
