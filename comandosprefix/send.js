@@ -1,4 +1,4 @@
-const { EmbedBuilder, PermissionsBitField, ChannelType } = require("discord.js");
+const { EmbedBuilder, PermissionsBitField, ChannelType, ButtonBuilder, ButtonStyle, ActionRowBuilder } = require("discord.js");
 
 module.exports = {
     name: "send",
@@ -153,6 +153,49 @@ message.channel.send({ embeds: embeds })
         ),
 ];
 message.channel.send({ embeds: embeds })
+        } else if (args[0] === 'normas') {
+
+
+            const image = new MediaGalleryItemBuilder()
+                .setURL('https://media.discordapp.net/attachments/1300019620815568906/1300028312445386752/Copy_of_Copy_of_POSTULACIONES_1.png?ex=686258b7&is=68610737&hm=b8fb73f2d4c5c4d0a950edf69c3c8c8284e98681b34d981450daaf2309ec81a4&format=webp&quality=lossless&width=792&height=198&')
+                .setDescription('normas')
+            
+            const mediaGallery = new MediaGalleryBuilder()
+                .setId(1)
+                .addItems([image])
+            
+            const separator = new SeparatorBuilder()
+
+            const text = new TextDisplayBuilder().setContent(`
+                **Normas** :scroll:
+                Nuestras reglas son muy sencillas de seguir, a pesar de que algo no este incluido en las reglas, puedes ser sancionado de igual manera.
+                
+                ### 1. Términos de Servicio de Discord
+                > Debes seguir los [**Términos de Servicio**](https://discord.com/terms) y las [**Pautas de la Comunidad**](https://discord.com/guidelines) de Discord en todo momento.
+                
+                ### 2. Sin Toxicidad
+                > No esta permitida la [**toxicidad**](https://es.wikipedia.org/wiki/Toxicidad#:~:text=La%20toxicidad%20es%20la%20capacidad,entrar%20en%20contacto%20con%20%C3%A9l.). Las palabras que se asemejen a insultos o que se utilicen como sustitutos de insultos se considerarán insultos y seras sancionado de igual manera.
+                
+                ### 3. Sin NSFW
+                > No esta permitido el contenido **NSFW**. Antes de publicar algo, asegúrate de que sea apropiado para todo el mundo. Si te saltas la auto moderación para hablar sobre contenido NSFW, serás sancionado de igual manera.
+                
+                ### 4. Sin Spam
+                > No esta permitido el **spam**. Aunque el spam lo hagas por medio de un mensaje directo, serás sancionado de igual manera.
+                
+                ### 5. Sin Contenido Malicioso
+                > No se permite ningún tipo de **contenido malicioso**, esto incluye: el phising, capturadores de IP, viruses...
+            `)
+
+            const container = new ContainerBuilder()
+                .addMediaGalleryComponents([mediaGallery])
+                .addSeparatorComponents(separator)
+                .addTextDisplayComponents(text)
+                .setAccentColor(16749062)
+
+            await message.channel.send({
+            components: [container],
+            flags: MessageFlags.IsComponentsV2
+            })
         }
     }
  };
