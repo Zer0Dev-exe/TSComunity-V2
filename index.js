@@ -142,147 +142,8 @@ client.on('messageCreate', async message => {
     }
 })
 
-const Schema = require('./Esquemas/clubsSchema.js')
-
-setInterval(async () => {
-    try {
-        const token = process.env.BS_APIKEY;
-        const data = await Schema.find();
-        const cantidad = data.length;
-        let totalCopas = 0;
-        let totalMiembros = 0;
-        let totalVices = 0;
-        let totalVeteranos = 0;
-        const canal = await client.channels.cache.get('1102591330070302862');
-        if (!canal) {
-            console.error('Canal no encontrado');
-            return;
-        }
-        const mensaje1 = await canal.messages.fetch('1336726116143988736').catch(() => null);
-        if (!mensaje1) {
-            console.error('Mensaje no encontrado');
-            return;
-        }
-        const clubDetalles = [];
-        const totalClubes = data.length;
-
-        for (const doc of data) {
-            const countries = require('./json/countries.json')
-            const countri = doc.Region ? doc.Region : 'España'
-            const countriCode = countries[countri].codigo
-            const countriEmoji = countries[countri].emoji
-            const clubTag = doc.ClubTag
-
-            const url = `https://api.brawlstars.com/v1/clubs/%23${doc.ClubTag}`;
-            try {
-                const response = await axios.get(url, {
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                        Accept: "application/json",
-                    },
-                });
-                const responseRankings = await axios.get(`https://api.brawlstars.com/v1/rankings/${countriCode}/clubs`, {
-                    headers: {
-                    Authorization: `Bearer ${token}`,
-                    Accept: "application/json",
-                    },
-                })
-                const responseGlobalRankings = await axios.get(`https://api.brawlstars.com/v1/rankings/global/clubs`, {
-                    headers: {
-                    Authorization: `Bearer ${token}`,
-                    Accept: "application/json",
-                    },
-                })
-
-                const club = response.data;
-                totalCopas += club.trophies;
-                totalMiembros += club.members.length;
-                totalVices += club.members.filter(member => member.role === 'vicePresident').length;
-                totalVeteranos += club.members.filter(member => member.role === 'senior').length;
-
-                // Obtener el presidente antes de cualquier otra operación
-                const presi = club.members.find(member => member.role === 'president');
-                const presiName = presi ? presi.name : 'No disponible';
-                const presiTag = presi ? presi.tag.replace('#', '') : ''; // Reemplaza el '#' por nada
-
-                let tipo = club.type;
-                if (tipo === "inviteOnly") tipo = "<:InvitacionBN:1333582486139043890> \`Invitación\`";
-                if (tipo === "open") tipo = "<:AbiertoBN:1333582488160833636> \`Abierto\`";
-                if (tipo === "closed") tipo = "<:CerradoBN:1333582484629094400> \`Cerrado\`";
-
-
-                const globalRankings = responseGlobalRankings.data
-                const globalRankingsV = globalRankings.items
-                const globalFindClubRanking = globalRankingsV.find((c) => c.tag === `#${clubTag}`)
-                const globalclubRanking = globalFindClubRanking ? `🌍 \`#${globalFindClubRanking.rank.toString()}\` ` : ''
-
-
-                const rankings = responseRankings.data
-                const rankingClubs = rankings.items
-                const findClubRanking = rankingClubs.find((c) => c.tag === `#${clubTag}`)
-                const clubRanking = findClubRanking ? `${countriEmoji} \`#${findClubRanking.rank.toString()}\`\n` : ''
-
-                clubDetalles.push({
-                    name: `**ㅤ**`,
-                    value: `<:CoronaAzulao:1237349756347613185> **[${club.name}](https://brawltime.ninja/club/${doc.ClubTag.replace('#', '')})**\n<:trophy:1178100595530420355> \`${club.trophies.toLocaleString()}\`\n${globalclubRanking}${clubRanking}<:Presi:1202692085019447377> ${presiName !== 'No disponible' ? `[${presiName}](https://brawltime.ninja/profile/${presiTag})` : presiName}\n<:trofeosmasaltos:1178100593181601812> \`${club.requiredTrophies.toLocaleString()}\`\n<:MiembrosClan:1202693897306898492> \`${club.members.length}\`\n${tipo}`,
-                    inline: true,
-                    trophies: club.trophies // Añadir la cantidad de trofeos para la ordenación
-                });
-                
-
-            } catch (error) {
-                console.error(`Error al obtener datos para el club con tag ${doc.ClubTag}:`, error);
-                clubDetalles.push({
-                    name: `Error en el club ${doc.ClubTag}`,
-                    value: `No se pudieron obtener datos para este club.`,
-                    trophies: 0 // Añadir 0 trofeos para la ordenación
-                });
-            }
-        }
-
-        // Ordenar los clubes por la cantidad de trofeos
-        clubDetalles.sort((a, b) => b.trophies - a.trophies);
-
-        const currentDate = new Date();
-        const formattedDate = currentDate.toLocaleString('es-ES', { 
-            timeZone: 'Europe/Madrid', // Cambia este valor según tu ubicación
-            year: 'numeric', 
-            month: '2-digit', 
-            day: '2-digit', 
-            hour: '2-digit', 
-            minute: '2-digit', 
-            second: '2-digit', 
-            hour12: false 
-        });
-
-        const resumenEmbed = new EmbedBuilder()
-            .setDescription(`# Información Clubes TS`)
-            .setThumbnail(client.user.avatarURL())
-            .addFields(
-                { name: 'Total Trofeos:', value: `<:trophy:1178100595530420355> \`${totalCopas.toLocaleString()}\``, inline: true },
-                { name: 'Total Clubs:', value: `<:club:1178100590002307122> \`${totalClubes}\``, inline: true },
-                { name: 'Total Miembros:', value: `<:MiembrosClan:1202693897306898492> \`${totalMiembros}\``, inline: true },
-                { name: 'Promedio Trofeos:', value: `<:trophy:1178100595530420355> \`${Math.round(totalCopas / totalClubes).toLocaleString()}\``, inline: true },
-                { name: 'Total Vices:', value: `<:VicePresi:1202692129827328082> \`${totalVices}\``, inline: true },
-                { name: 'Total Veteranos:', value: `<:Reclamar:1164688584129908918> \`${totalVeteranos}\``, inline: true }
-            )
-            .setColor('#822ffd');
-
-        const clubesEmbed = new EmbedBuilder()
-            .setDescription('# Lista de Clubes TS Comunity Brawl')
-            .setColor('#10ceec')
-            .setFooter({ text: `Última actualización: ${formattedDate}`, iconURL: `${client.user.avatarURL()}` });
-
-        // Agregar los detalles de cada club como fields
-        clubDetalles.forEach(club => {
-            clubesEmbed.addFields({ name: club.name, value: club.value, inline: true });
-        });
-        // Editar el primer mensaje con la información general
-        await mensaje1.edit({ embeds: [resumenEmbed, clubesEmbed] });
-    } catch (error) {
-        console.error(`Error en el proceso de actualización: ${error.message}`);
-    }
-}, 60000);
+const actualizarClubes = require('./Funciones/actualizarClubes.js');
+setInterval(() => actualizarClubes(client), 10000);
 
 setInterval(async () => {
     const token = process.env.BS_APIKEY
@@ -612,3 +473,7 @@ setInterval(async () => {
     console.error('❌ Error al recuperar las tareas pendientes:', error);
   }
 }, 600000); // Ejecutar cada 10 minutos
+
+const tagRoleManager = require("./Funciones/tagRole");
+
+tagRoleManager(client, "1380229272316154027");
