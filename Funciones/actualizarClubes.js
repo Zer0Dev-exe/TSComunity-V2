@@ -2,6 +2,8 @@ const axios = require('axios');
 const { EmbedBuilder } = require('discord.js');
 const Schema = require('../Esquemas/clubsSchema'); // Ajusta la ruta si es diferente
 const countries = require('../json/countries.json');
+const contarCaracteresEmbed = require('./contarCaracteresEmbed.js')
+
 
 module.exports = async function actualizarClubes(client) {
     try {
@@ -123,4 +125,12 @@ module.exports = async function actualizarClubes(client) {
     } catch (error) {
         console.error(`Error en el proceso de actualización: ${error.message}`);
     }
+
+    const guild = client.guilds.cache.get('1093864130030612521')
+    const channel = guild.channels.cache.get('1127922884568957010')
+    await channel.send(
+        `Resumen Embed: ${contarCaracteresEmbed(resumenEmbed)}\n` +
+        `Embed 1: ${contarCaracteresEmbed(embed1)}\n` +
+        `Embed 2: ${contarCaracteresEmbed(embed2)}\n`
+    )
 };
