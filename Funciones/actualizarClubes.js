@@ -6,6 +6,7 @@ const contarCaracteresEmbed = require('./contarCaracteresEmbed.js')
 
 
 module.exports = async function actualizarClubes(client) {
+    console.log('manzanilla')
     try {
         const token = process.env.BS_APIKEY;
         const data = await Schema.find();
@@ -130,6 +131,12 @@ module.exports = async function actualizarClubes(client) {
         const guild = client.guilds.cache.get('1093864130030612521')
         const channel = guild.channels.cache.get('1127922884568957010')
         await channel.send(
+            `Resumen Embed: ${contarCaracteresEmbed(resumenEmbed)}\n` +
+            `Embed 1: ${contarCaracteresEmbed(embed1)}\n` +
+            `Embed 2: ${contarCaracteresEmbed(embed2)}\n`
+        )
+
+        console.log(
             `Resumen Embed: ${contarCaracteresEmbed(resumenEmbed)}\n` +
             `Embed 1: ${contarCaracteresEmbed(embed1)}\n` +
             `Embed 2: ${contarCaracteresEmbed(embed2)}\n`
