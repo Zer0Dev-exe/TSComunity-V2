@@ -125,12 +125,16 @@ module.exports = async function actualizarClubes(client) {
     } catch (error) {
         console.error(`Error en el proceso de actualización: ${error.message}`);
     }
-
-    const guild = client.guilds.cache.get('1093864130030612521')
-    const channel = guild.channels.cache.get('1127922884568957010')
-    await channel.send(
-        `Resumen Embed: ${contarCaracteresEmbed(resumenEmbed)}\n` +
-        `Embed 1: ${contarCaracteresEmbed(embed1)}\n` +
-        `Embed 2: ${contarCaracteresEmbed(embed2)}\n`
-    )
+    console.log('a')
+    try {
+        const guild = client.guilds.cache.get('1093864130030612521')
+        const channel = guild.channels.cache.get('1127922884568957010')
+        await channel.send(
+            `Resumen Embed: ${contarCaracteresEmbed(resumenEmbed)}\n` +
+            `Embed 1: ${contarCaracteresEmbed(embed1)}\n` +
+            `Embed 2: ${contarCaracteresEmbed(embed2)}\n`
+        )
+    } catch (error) {
+        console.log(error)
+    }
 };
