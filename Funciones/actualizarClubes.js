@@ -55,11 +55,11 @@ module.exports = async function actualizarClubes(client) {
 
                 clubDetalles.push({
                     name: `**ㅤ**`,
-                    value: `<:CoronaAzulao:1237349756347613185> **[${club.name}](https://brawltime.ninja/club/${clubTag.replace('#', '')})**\n` +
+                    value: `<:CoronaAzulao:1237349756347613185> **[${club.name}](https://brawltime.ninja/es/club/${clubTag.replace('#', '')})**\n` +
                            `<:trophy:1178100595530420355> \`${club.trophies.toLocaleString()}\`\n` +
                            `${globalRanking}${localRanking}` +
-                           `<:Presi:1202692085019447377> ${presiName}\n` +
-                           `<:trofeosmasaltos:1178100593181601812> \`${club.requiredTrophies.toLocaleString()}\`\n` +
+                           `<:Presi:1202692085019447377> [${presiName}](https://brawltime.ninja/es/profile/${presi.tag.replace('#', '')})\n` +
+                           `<:req:1385558827826544640> \`${club.requiredTrophies.toLocaleString()}\`\n` +
                            `<:MiembrosClan:1202693897306898492> \`${club.members.length}\`\n` +
                            `${tipo}`,
                     trophies: club.trophies
@@ -98,8 +98,8 @@ module.exports = async function actualizarClubes(client) {
             )
             .setColor('#822ffd');
 
-        const clubesEmbed1 = clubDetalles.slice(0, 15);
-        const clubesEmbed2 = clubDetalles.slice(15, 30);
+        const clubesEmbed1 = clubDetalles.slice(0, 12);
+        const clubesEmbed2 = clubDetalles.slice(12, 24);
 
         const embed1 = new EmbedBuilder()
             .setDescription(`# Clubes TS - Página 1`)
