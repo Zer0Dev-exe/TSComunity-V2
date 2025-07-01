@@ -128,22 +128,26 @@ module.exports = async function actualizarClubes(client) {
     }
     console.log('a')
     try {
-        client.once('ready', () => {
-            const guild = client.guilds.cache.get('1093864130030612521')
-            const channel = guild.channels.cache.get('1127922884568957010')
-            await channel.send(
-                `Resumen Embed: ${contarCaracteresEmbed(resumenEmbed)}\n` +
-                `Embed 1: ${contarCaracteresEmbed(embed1)}\n` +
-                `Embed 2: ${contarCaracteresEmbed(embed2)}\n`
-            )
+        const guild = client.guilds.cache.get('1093864130030612521');
+        const channel = guild?.channels.cache.get('1127922884568957010');
+        if (!channel) return console.error('❌ Canal de logs no encontrado');
 
-            console.log(
-                `Resumen Embed: ${contarCaracteresEmbed(resumenEmbed)}\n` +
-                `Embed 1: ${contarCaracteresEmbed(embed1)}\n` +
-                `Embed 2: ${contarCaracteresEmbed(embed2)}\n`
-            )
-        })
+        const resumenCount = contarCaracteresEmbed(resumenEmbed);
+        const embed1Count = contarCaracteresEmbed(embed1);
+        const embed2Count = contarCaracteresEmbed(embed2);
+
+        await channel.send(
+            `Resumen Embed: ${resumenCount}\n` +
+            `Embed 1: ${embed1Count}\n` +
+            `Embed 2: ${embed2Count}`
+        );
+
+        console.log(
+            `Resumen Embed: ${resumenCount}\n` +
+            `Embed 1: ${embed1Count}\n` +
+            `Embed 2: ${embed2Count}`
+        );
     } catch (error) {
-        console.log(error)
+        console.error('🔥 Error enviando los caracteres de los embeds:', error);
     }
 };
