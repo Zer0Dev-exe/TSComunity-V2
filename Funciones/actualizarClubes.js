@@ -6,7 +6,6 @@ const contarCaracteresEmbed = require('./caracteresEmbed.js');
 
 
 module.exports = async function actualizarClubes(client) {
-    console.log('manzanilla')
     try {
         const token = process.env.BS_APIKEY;
         const data = await Schema.find();
@@ -123,12 +122,7 @@ module.exports = async function actualizarClubes(client) {
 
         await mensaje1.edit({ embeds: embedsToSend });
 
-    } catch (error) {
-        console.error(`Error en el proceso de actualización: ${error.message}`);
-    }
-    console.log('a')
-    try {
-        const guild = client.guilds.cache.get('1093864130030612521');
+                const guild = client.guilds.cache.get('1093864130030612521');
         const channel = guild?.channels.cache.get('1127922884568957010');
         if (!channel) return console.error('❌ Canal de logs no encontrado');
 
@@ -148,6 +142,6 @@ module.exports = async function actualizarClubes(client) {
             `Embed 2: ${embed2Count}`
         );
     } catch (error) {
-        console.error('🔥 Error enviando los caracteres de los embeds:', error);
+        console.error(`Error en el proceso de actualización: ${error.message}`);
     }
 };
