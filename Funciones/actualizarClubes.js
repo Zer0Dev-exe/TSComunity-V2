@@ -117,13 +117,9 @@ module.exports = async function actualizarClubes(client) {
 
         clubesEmbed2.forEach(club => embed2.addFields({ name: club.name, value: club.value, inline: true }));
 
-        const embedsToSend = [resumenEmbed, embed1];
-        if (clubesEmbed2.length > 0) embedsToSend.push(embed2);
-
-        await mensaje1.edit({ embeds: embedsToSend });
-
                 const guild = client.guilds.cache.get('1093864130030612521');
         const channel = guild?.channels.cache.get('1127922884568957010');
+
         if (!channel) return console.error('❌ Canal de logs no encontrado');
 
         const resumenCount = contarCaracteresEmbed(resumenEmbed);
@@ -141,6 +137,22 @@ module.exports = async function actualizarClubes(client) {
             `Embed 1: ${embed1Count}\n` +
             `Embed 2: ${embed2Count}`
         );
+
+        const embedsToSend = [resumenEmbed, embed1];
+
+        await mensaje1.edit({ embeds: [resumenEmbed, embed1] });
+
+        if (clubesEmbed2.length > 0) {
+        
+        const mensajes = await canal.messages.fetch({ limit: 1 });
+        const mensaje2 = mensajes.first();
+
+        if (mensaje2 && mensaje2.id !== '1336726116143988736') {
+            await mensaje2.edit({ embeds: [embed2] });
+        } else {
+            await canal.send({ embeds: [embed2] });
+        }
+        }
     } catch (error) {
         console.error(`Error en el proceso de actualización: ${error.message}`);
     }
