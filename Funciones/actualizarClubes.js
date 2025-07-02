@@ -100,8 +100,8 @@ module.exports = async function actualizarClubes(client) {
             )
             .setColor('#822ffd');
 
-        const clubesEmbed1 = clubDetalles.slice(0, 12);
-        const clubesEmbed2 = clubDetalles.slice(12, 24);
+        const clubesEmbed1 = clubDetalles.slice(0, 15);
+        const clubesEmbed2 = clubDetalles.slice(15, 30);
 
         const embed1 = new EmbedBuilder()
             .setDescription(`# Clubes TS - Página 1`)
