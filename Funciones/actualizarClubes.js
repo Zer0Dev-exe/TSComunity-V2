@@ -2,8 +2,6 @@ const axios = require('axios');
 const { EmbedBuilder } = require('discord.js');
 const Schema = require('../Esquemas/clubsSchema'); // Ajusta la ruta si es diferente
 const countries = require('../json/countries.json');
-const contarCaracteresEmbed = require('./caracteresEmbed.js');
-
 
 module.exports = async function actualizarClubes(client) {
     try {
@@ -116,29 +114,6 @@ module.exports = async function actualizarClubes(client) {
             .setFooter({ text: `Última actualización: ${formattedDate}`, iconURL: client.user.avatarURL() });
 
         clubesEmbed2.forEach(club => embed2.addFields({ name: club.name, value: club.value, inline: true }));
-
-                const guild = client.guilds.cache.get('1093864130030612521');
-        const channel = guild?.channels.cache.get('1127922884568957010');
-
-        if (!channel) return console.error('❌ Canal de logs no encontrado');
-
-        const resumenCount = contarCaracteresEmbed(resumenEmbed);
-        const embed1Count = contarCaracteresEmbed(embed1);
-        const embed2Count = contarCaracteresEmbed(embed2);
-
-        await channel.send(
-            `Resumen Embed: ${resumenCount}\n` +
-            `Embed 1: ${embed1Count}\n` +
-            `Embed 2: ${embed2Count}`
-        );
-
-        console.log(
-            `Resumen Embed: ${resumenCount}\n` +
-            `Embed 1: ${embed1Count}\n` +
-            `Embed 2: ${embed2Count}`
-        );
-
-        const embedsToSend = [resumenEmbed, embed1];
 
         await mensaje1.edit({ embeds: [resumenEmbed, embed1] });
 
