@@ -145,6 +145,7 @@ client.on('messageCreate', async message => {
 const actualizarClubes = require('./Funciones/actualizarClubes.js');
 setInterval(() => actualizarClubes(client), 10000);
 
+const Schema = require('./Esquemas/clubsSchema.js')
 setInterval(async () => {
     const token = process.env.BS_APIKEY
     const data = await Schema.find()
