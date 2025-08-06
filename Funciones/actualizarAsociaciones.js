@@ -6,7 +6,7 @@ module.exports = async function actualizarListaAsociaciones(client) {
         console.log('iniciando')
 function embed({ asociation }) {
   // Detectar a quién están asignadas (todas tendrán el mismo .Asignado)
-  const asignado = asociation[0]?.Asignado || 'SinAsignar'
+  const asignado = asociation[0]?.Asignado || 'SinAsignar';
 
   const embed = new EmbedBuilder()
     .setDescription(
@@ -14,10 +14,15 @@ function embed({ asociation }) {
         ? '### 📋 Asociaciones sin asignar'
         : `### 📌 Asociaciones de <@${asignado}>`
     )
-    .setColor(asignado === 'SinAsignar' ? 0xffcc00 : 0x00b0f4)
+    .setColor(asignado === 'SinAsignar' ? 0xffcc00 : 0x00b0f4);
 
+  // Si el array está vacío...
   if (asociation.length === 0) {
-    embed.setDescription("No hay asociaciones.");
+    if (asignado === 'SinAsignar') {
+      embed.setDescription('No hay asociaciones sin asignar.');
+    } else {
+      embed.setDescription('No hay asociaciones.');
+    }
     return embed;
   }
 
@@ -63,14 +68,26 @@ const asociations = (
   )
 ).filter(Boolean);
 
-    const expectedAsociations = Object.values(
-    asociations.reduce((acc, aso) => {
-        const key = aso.Asignado || 'SinAsignar'; // por si hay alguno sin asignado
-        if (!acc[key]) acc[key] = [];
-        acc[key].push(aso);
-        return acc;
-    }, {})
-    );
+const agrupado = asociations.reduce((acc, aso) => {
+  const key = aso.Asignado || 'SinAsignar';
+  if (!acc[key]) acc[key] = [];
+  acc[key].push(aso);
+  return acc;
+}, {});
+
+// Aseguramos que 'SinAsignar' exista aunque esté vacío
+if (!agrupado['SinAsignar']) {
+  agrupado['SinAsignar'] = [];
+}
+
+// Convertimos a array, pero sacamos la clave 'SinAsignar' para ponerla al final
+const expectedAsociations = [
+  ...Object.entries(agrupado)
+    .filter(([key]) => key !== 'SinAsignar')
+    .map(([, value]) => value),
+  agrupado['SinAsignar'] // siempre al final
+];
+
 
   // 🔁 Si faltan mensajes (1 resumen + divisiones), reinicia todo
   const expectedMessages = expectedAsociations.length

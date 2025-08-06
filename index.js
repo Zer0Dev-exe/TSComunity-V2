@@ -40,11 +40,19 @@ process.on('uncaughtExceptionMonitor', (err, origin) => {
 });
 
 const client = new Client({
-  intents: [Object.keys(GatewayIntentBits)],
-  partials: [Object.keys(Partials), Partials.Channel],
+  intents: [
+    GatewayIntentBits.Guilds,
+    GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.MessageContent, // Si necesitas leer el contenido del mensaje
+    GatewayIntentBits.GuildMembers, // Si necesitas acceder a miembros
+  ],
+  partials: [
+    Partials.Channel, // Si usas canales parciales (DMs, etc.)
+  ],
   allowedMentions: {
-    parse: ["users"]
-  },
+    parse: ['users', 'roles', 'everyone'],
+    repliedUser: false
+  }
 });
 
 client.commands = new Collection();
