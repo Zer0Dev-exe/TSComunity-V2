@@ -14,11 +14,6 @@ module.exports = async function actualizarClubes(client) {
         let totalVices = 0;
         let totalVeteranos = 0;
 
-        const canal = await client.channels.cache.get('1102591330070302862');
-        if (!canal) return console.error('Canal no encontrado');
-        const mensaje1 = await canal.messages.fetch('1336726116143988736').catch(() => null);
-        if (!mensaje1) return console.error('Mensaje no encontrado');
-
         const clubDetalles = [];
 
         for (const doc of data) {
@@ -107,7 +102,7 @@ module.exports = async function actualizarClubes(client) {
             .addFields(clubes.map(club => ({ name: club.name, value: club.value, inline: true })))
         }
 
-        const channel = await client.channels.fetch(1102591330070302862);
+        const channel = await client.channels.fetch('1102591330070302862');
         if (!channel || !channel.isTextBased())
             throw new Error('Canal no encontrado o no es de texto.');
 
@@ -176,6 +171,6 @@ const pages = agruparEnBloques(clubDetalles)
     });
   }
     } catch (error) {
-        console.error(`Error en el proceso de actualización: ${error.message}`);
+        console.error(`Error en el proceso de actualización: ${error}`);
     }
 };
