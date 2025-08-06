@@ -6,7 +6,8 @@ module.exports = async function actualizarListaAsociaciones(client) {
         console.log('iniciando')
 function embed({ asociation }) {
   // Detectar a quién están asignadas (todas tendrán el mismo .Asignado)
-  const asignado = (asociation[0] || asociation[0]?.Asignado) || 'SinAsignar';
+  const asignado = asociation[0]?.Asignado || 'SinAsignar'
+
 
   const embed = new EmbedBuilder()
     .setDescription(
@@ -19,9 +20,9 @@ function embed({ asociation }) {
   // Si el array está vacío...
   if (asociation.length === 0) {
     if (asignado === 'SinAsignar') {
-      embed.setDescription('No hay asociaciones sin asignar.');
+      embed.setDescription('### 📋 Asociaciones sin asignar\nNo hay asociaciones sin asignar.');
     } else {
-      embed.setDescription('No hay asociaciones.');
+      embed.setDescription(`### 📌 Asociaciones de <@${asignado}>\nEl usuario no tiene asociaciones-`);
     }
     return embed;
   }
@@ -100,7 +101,8 @@ const expectedAsociations = [
     for (const asociation of expectedAsociations) {
 
       await channel.send({
-        embeds: [embed({ asociation })]
+        embeds: [embed({ asociation })],
+          allowedMentions: { users: [] }
       })
     }
 
@@ -115,7 +117,8 @@ const expectedAsociations = [
     if (!msg) continue
 
     await msg.edit({
-      embeds: [embed({ asociation })]
+      embeds: [embed({ asociation })],
+          allowedMentions: { users: [] }
     });
   }
     } catch (error) {
