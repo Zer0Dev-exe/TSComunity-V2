@@ -98,36 +98,83 @@ module.exports = async function actualizarClubes(client) {
             )
             .setColor('#822ffd');
 
-        const clubesEmbed1 = clubDetalles.slice(0, 15);
-        const clubesEmbed2 = clubDetalles.slice(15, 30);
-
-        const embed1 = new EmbedBuilder()
-            .setDescription(`# Clubes TS - Página 1`)
-            .setColor('#10ceec')
-            .setFooter({ text: `Última actualización: ${formattedDate}`, iconURL: client.user.avatarURL() });
-
-        clubesEmbed1.forEach(club => embed1.addFields({ name: club.name, value: club.value, inline: true }));
-
-        const embed2 = new EmbedBuilder()
-            .setDescription(`# Clubes TS - Página 2`)
-            .setColor('#10ceec')
-            .setFooter({ text: `Última actualización: ${formattedDate}`, iconURL: client.user.avatarURL() });
-
-        clubesEmbed2.forEach(club => embed2.addFields({ name: club.name, value: club.value, inline: true }));
-
-        await mensaje1.edit({ embeds: [resumenEmbed, embed1] });
-
-        if (clubesEmbed2.length > 0) {
         
-        const mensajes = await canal.messages.fetch({ limit: 1 });
-        const mensaje2 = mensajes.first();
+        const pageEmbed = ({ index, clubes }) => {
+            return new EmbedBuilder()
+            .setDescription(`# Clubes TS - Página ${index}`)
+            .setColor('#10ceec')
+            .setFooter({ text: `Última actualización: ${formattedDate}`, iconURL: client.user.avatarURL() })
+            .addFields(clubes.map(club => ({ name: club.name, value: club.value, inline: true })))
+        }
 
-        if (mensaje2 && mensaje2.id !== '1336726116143988736') {
-            await mensaje2.edit({ embeds: [embed2] });
-        } else {
-            await canal.send({ embeds: [embed2] });
-        }
-        }
+        const channel = await client.channels.fetch(1102591330070302862);
+        if (!channel || !channel.isTextBased())
+            throw new Error('Canal no encontrado o no es de texto.');
+
+        const fetchedMessages = await channel.messages.fetch({ limit: 100 });
+        const sortedMessages = Array.from(fetchedMessages.values()).sort(
+            (a, b) => a.createdTimestamp - b.createdTimestamp
+        );
+        const botMessages = sortedMessages.filter(
+            (msg) => msg.author.id === client.user.id
+        );
+
+        const summaryMsg = botMessages[0]; // Primer mensaje → resumen
+        const clubsMsgs = botMessages.slice(1); // El resto → divisiones
+
+function agruparEnBloques(array, tamano = 15) {
+  const bloques = [];
+  for (let i = 0; i < array.length; i += tamano) {
+    bloques.push(array.slice(i, i + tamano));
+  }
+  return bloques;
+}
+const pages = agruparEnBloques(clubDetalles)
+
+  // 🔁 Si faltan mensajes (1 resumen + divisiones), reinicia todo
+  const expectedMessages = 1 + pages.length
+  if (botMessages.length !== expectedMessages) {
+    for (const msg of botMessages) {
+      await msg.delete().catch(() => {});
+    }
+
+    // ⬆️ Crear mensaje resumen
+    await channel.send({
+      embeds: [resumenEmbed]
+    });
+
+    // 📤 Crear 1 mensaje por división
+    let index = 1
+    for (const page of pages) {
+
+      await channel.send({
+        embeds: [pageEmbed({ index, clubes: page })]
+      })
+      index++
+    }
+
+    return;
+  }
+
+  // ✅ Actualizar resumen si existe
+  if (summaryMsg) {
+    await summaryMsg.edit({
+      embeds: [
+        resumenEmbed
+      ]
+    });
+  }
+
+  // 🧩 Actualizar mensajes de cada división
+  for (let i = 0; i < pages.length; i++) {
+    const page = pages[i];
+    const msg = clubsMsgs[i];
+    if (!msg) continue
+
+    await msg.edit({
+      embeds: [pageEmbed({ index: i, clubes: page })]
+    });
+  }
     } catch (error) {
         console.error(`Error en el proceso de actualización: ${error.message}`);
     }
