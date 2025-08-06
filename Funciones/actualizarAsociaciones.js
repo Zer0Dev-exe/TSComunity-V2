@@ -1,7 +1,7 @@
 const { EmbedBuilder } = require('discord.js');
 const Asociacion = require('../Esquemas/asociacionesSchema')
 
-async function actualizarListaAsociaciones(client) {
+module.exports = async function actualizarListaAsociaciones(client) {
     try {
         console.log('iniciando')
 function embed({ asociation }) {
@@ -103,6 +103,4 @@ const asociations = (
     } catch (error) {
         console.error(`Error en el proceso de actualización: ${error}`);
     }
-};
-
-module.exports = { actualizarListaAsociaciones }
+}
