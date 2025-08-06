@@ -167,7 +167,7 @@ const pages = agruparEnBloques(clubDetalles)
     if (!msg) continue
 
     await msg.edit({
-      embeds: [pageEmbed({ index: i, clubes: page })]
+      embeds: [pageEmbed({ index: i + 1, clubes: page })]
     });
   }
     } catch (error) {
