@@ -6,7 +6,7 @@ module.exports = async function actualizarListaAsociaciones(client) {
         console.log('iniciando')
 function embed({ asociation }) {
   // Detectar a quién están asignadas (todas tendrán el mismo .Asignado)
-  const asignado = asociation[0]?.Asignado || 'SinAsignar';
+  const asignado = (asociation[0] || asociation[0]?.Asignado) || 'SinAsignar';
 
   const embed = new EmbedBuilder()
     .setDescription(
@@ -91,6 +91,7 @@ const expectedAsociations = [
 
   // 🔁 Si faltan mensajes (1 resumen + divisiones), reinicia todo
   const expectedMessages = expectedAsociations.length
+  console.log(expectedMessages, expectedAsociations)
   if (botMessages.length !== expectedMessages) {
     for (const msg of botMessages) {
       await msg.delete().catch(() => {});
