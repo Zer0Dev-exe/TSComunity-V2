@@ -1,8 +1,9 @@
 const { EmbedBuilder } = require('discord.js');
 const Asociacion = require('../Esquemas/asociacionesSchema')
 
-module.exports = async function actualizarListaAsociaciones(client) {
+async function actualizarListaAsociaciones(client) {
     try {
+        console.log('iniciando')
 function embed({ asociation }) {
   // Detectar a quién están asignadas (todas tendrán el mismo .Asignado)
   const asignado = asociation[0]?.Asignado || 'SinAsignar'
