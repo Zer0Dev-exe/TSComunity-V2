@@ -46,12 +46,6 @@ function embed({ asociation }) {
             (msg) => msg.author.id === client.user.id
         )
 
-  // 🔁 Si faltan mensajes (1 resumen + divisiones), reinicia todo
-  const expectedMessages = expectedAsociations.length
-  if (botMessages.length !== expectedMessages) {
-    for (const msg of botMessages) {
-      await msg.delete().catch(() => {});
-    }
 
     const asociations = await Asociacion.find().filter(Boolean);
     const expectedAsociations = Object.values(
@@ -62,6 +56,13 @@ function embed({ asociation }) {
         return acc;
     }, {})
     );
+    
+  // 🔁 Si faltan mensajes (1 resumen + divisiones), reinicia todo
+  const expectedMessages = expectedAsociations.length
+  if (botMessages.length !== expectedMessages) {
+    for (const msg of botMessages) {
+      await msg.delete().catch(() => {});
+    }
 
     for (const asociation of expectedAsociations) {
 
