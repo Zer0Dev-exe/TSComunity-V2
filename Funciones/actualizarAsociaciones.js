@@ -47,7 +47,21 @@ function embed({ asociation }) {
         )
 
 
-    const asociations = await Asociacion.find().filter(Boolean);
+const todasAsociaciones = await Asociacion.find({ Canal: { $ne: null } });
+
+const asociations = (
+  await Promise.all(
+    todasAsociaciones.map(async (aso) => {
+      try {
+        await client.channels.fetch(aso.Canal);
+        return aso; // Canal válido
+      } catch {
+        return null; // Canal no existe
+      }
+    })
+  )
+).filter(Boolean);
+
     const expectedAsociations = Object.values(
     asociations.reduce((acc, aso) => {
         const key = aso.Asignado || 'SinAsignar'; // por si hay alguno sin asignado
@@ -56,7 +70,7 @@ function embed({ asociation }) {
         return acc;
     }, {})
     );
-    
+
   // 🔁 Si faltan mensajes (1 resumen + divisiones), reinicia todo
   const expectedMessages = expectedAsociations.length
   if (botMessages.length !== expectedMessages) {

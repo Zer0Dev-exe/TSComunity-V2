@@ -263,7 +263,7 @@ message.edit(`
 }, 60000)
 
 const actualizarListaAsociaciones = require('./Funciones/actualizarAsociaciones.js')
-setInterval(actualizarListaAsociaciones, 10000);
+setInterval(() => actualizarListaAsociaciones(client), 10000);
 
 client.on('interactionCreate', async interaction => {
   if (interaction.isAutocomplete()) {
