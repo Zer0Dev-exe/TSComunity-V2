@@ -28,6 +28,7 @@ function embed({ asociation }) {
   }
 
   for (const aso of asociation) {
+    if (!asignado === 'SinAsignar') {
     embed.addFields({
       name: aso.Canal ? `<:canales:1340014379080618035> <#${aso.Canal}>` : "<:canales:1340014379080618035> Sin canal",
       value: [
@@ -36,6 +37,11 @@ function embed({ asociation }) {
       ].join('\n'),
       inline: false
     });
+    } else {
+        embed.addFields({
+            name: `<:canales:1340014379080618035> <#${aso.Canal}>`
+        })
+    }
   }
 
   return embed;
@@ -55,7 +61,7 @@ function embed({ asociation }) {
 
 
 const categoria1Id = '1217154240175407196';
-const categoria2Id = 'ID_DE_CATEGORIA_2';
+const categoria2Id = '1267736691083317300';
 
 // 1. Obtener todos los canales de ambas categorías
 const canalesEnCategorias = client.channels.cache.filter(channel =>
