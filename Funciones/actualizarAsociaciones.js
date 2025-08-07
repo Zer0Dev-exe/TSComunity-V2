@@ -92,9 +92,7 @@ const canalesRegistrados = new Set(asociations.map(aso => aso.Canal));
 const canalesNoRegistrados = canalesEnCategorias.filter(channel => !canalesRegistrados.has(channel.id));
 
 // 5. Añadir los canales faltantes a la base de datos
-for (const canal of canalesNoRegistrados.values()) {
-  asociations.push({ Canal: canal, Asignado, undefined })
-}
+
 
 const agrupado = asociations.reduce((acc, aso) => {
   const key = aso.Asignado || 'SinAsignar';
@@ -108,6 +106,7 @@ if (!agrupado['SinAsignar']) {
   agrupado['SinAsignar'] = [];
 }
 
+
 // Convertimos a array, pero sacamos la clave 'SinAsignar' para ponerla al final
 const expectedAsociations = [
   ...Object.entries(agrupado)
@@ -115,6 +114,10 @@ const expectedAsociations = [
     .map(([, value]) => value),
   agrupado['SinAsignar'] // siempre al final
 ];
+
+for (const canal of canalesNoRegistrados.values()) {
+  expectedAsociations[expectedAsociations.length - 1].push({ Canal: canal, Asignado: undefined })
+}
 
 
   // 🔁 Si faltan mensajes (1 resumen + divisiones), reinicia todo
