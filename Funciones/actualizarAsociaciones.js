@@ -34,7 +34,7 @@ function embed({ asociation }) {
         aso.Renovacion ? `🗓️ ${aso.Renovacion} días` : 'No definido',
         aso.Representante ? `<:representante:1340014390342193252> <@${aso.Representante}>` : '<:representante:1340014390342193252> Sin representante',
       ].join('\n'),
-      inline: true
+      inline: false
     });
   }
 
@@ -54,7 +54,7 @@ function embed({ asociation }) {
         )
 
 
-const categoria1Id = 'ID_DE_CATEGORIA_1';
+const categoria1Id = '1217154240175407196';
 const categoria2Id = 'ID_DE_CATEGORIA_2';
 
 // 1. Obtener todos los canales de ambas categorías
