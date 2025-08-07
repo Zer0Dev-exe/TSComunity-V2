@@ -28,20 +28,22 @@ function embed({ asociation }) {
   }
 
   for (const aso of asociation) {
-    if (!asignado === 'SinAsignar') {
-    embed.addFields({
-      name: aso.Canal ? `<:canales:1340014379080618035> <#${aso.Canal}>` : "<:canales:1340014379080618035> Sin canal",
-      value: [
-        aso.Renovacion ? `🗓️ ${aso.Renovacion} días` : 'No definido',
-        aso.Representante ? `<:representante:1340014390342193252> <@${aso.Representante}>` : '<:representante:1340014390342193252> Sin representante',
-      ].join('\n'),
-      inline: false
-    });
-    } else {
-        embed.addFields({
-            name: `<:canales:1340014379080618035> <#${aso.Canal}>`
-        })
-    }
+if (asignado !== 'SinAsignar') {
+  embed.addFields({
+    name: aso.Canal ? `<:canales:1340014379080618035> <#${aso.Canal}>` : "<:canales:1340014379080618035> Sin canal",
+    value: [
+      aso.Renovacion ? `🗓️ ${aso.Renovacion} días` : 'No definido',
+      aso.Representante ? `<:representante:1340014390342193252> <@${aso.Representante}>` : '<:representante:1340014390342193252> Sin representante',
+    ].join('\n'),
+    inline: false
+  });
+} else {
+  embed.addFields({
+    name: aso.Canal ? `<:canales:1340014379080618035> <#${aso.Canal}>` : "<:canales:1340014379080618035> Sin canal",
+    value: 'No asignada',
+    inline: false
+  });
+}
   }
 
   return embed;
@@ -116,7 +118,7 @@ const expectedAsociations = [
 ];
 
 for (const canal of canalesNoRegistrados.values()) {
-  expectedAsociations[expectedAsociations.length - 1].push({ Canal: canal, Asignado: undefined })
+  expectedAsociations[expectedAsociations.length - 1].push({ Canal: canal, Asignado: 'SinAsignar' })
 }
 
 
