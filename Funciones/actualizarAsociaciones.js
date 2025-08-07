@@ -34,7 +34,7 @@ function embed({ asociation }) {
         aso.Renovacion ? `🗓️ ${aso.Renovacion} días` : 'No definido',
         aso.Representante ? `<:representante:1340014390342193252> <@${aso.Representante}>` : '<:representante:1340014390342193252> Sin representante',
       ].join('\n'),
-      inline: false
+      inline: true
     });
   }
 
@@ -54,6 +54,16 @@ function embed({ asociation }) {
         )
 
 
+const categoria1Id = 'ID_DE_CATEGORIA_1';
+const categoria2Id = 'ID_DE_CATEGORIA_2';
+
+// 1. Obtener todos los canales de ambas categorías
+const canalesEnCategorias = client.channels.cache.filter(channel =>
+  channel.type === 0 && // Solo canales de texto
+  (channel.parentId === categoria1Id || channel.parentId === categoria2Id)
+);
+
+// 2. Obtener todos los canales ya registrados
 const todasAsociaciones = await Asociacion.find({ Canal: { $ne: null } });
 
 const asociations = (
@@ -68,6 +78,17 @@ const asociations = (
     })
   )
 ).filter(Boolean);
+
+// 3. Crear un Set con los IDs ya registrados
+const canalesRegistrados = new Set(asociations.map(aso => aso.Canal));
+
+// 4. Filtrar los canales que no están registrados
+const canalesNoRegistrados = canalesEnCategorias.filter(channel => !canalesRegistrados.has(channel.id));
+
+// 5. Añadir los canales faltantes a la base de datos
+for (const canal of canalesNoRegistrados.values()) {
+  asociations.push({ Canal: canal, Asignado, undefined })
+}
 
 const agrupado = asociations.reduce((acc, aso) => {
   const key = aso.Asignado || 'SinAsignar';
