@@ -98,7 +98,12 @@ module.exports = async function actualizarListaAsociaciones(client) {
       for (const aso of asociation) {
         // Construimos el bloque según si está asignado o no
         if (asignado !== 'SinAsignar') {
-          const renovacionTimestamp = aso.UltimaRenovacion ? Math.floor(new Date(aso.UltimaRenovacion).getTime() / 1000) : null;
+const renovacionTimestamp = aso.UltimaRenovacion
+  ? Math.floor(
+      (new Date(aso.UltimaRenovacion).getTime() + aso.Renovacion * 24 * 60 * 60 * 1000) / 1000
+    )
+  : null;
+
 
           container
             .addSeparatorComponents(new SeparatorBuilder())

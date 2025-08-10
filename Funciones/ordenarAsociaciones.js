@@ -82,7 +82,12 @@ function createContainerForStaff(asociaciones, staffId, staffDisplayName, sorted
     
     if (!isUnassigned) {
       // Para staff asignado - mostrar toda la info
-      const renovacionTimestamp = Math.floor(aso.UltimaRenovacion?.getTime() / 1000);
+  const renovacionTimestamp = aso.UltimaRenovacion
+  ? Math.floor(
+      (new Date(aso.UltimaRenovacion).getTime() + aso.Renovacion * 24 * 60 * 60 * 1000) / 1000
+    )
+  : null;
+
       container
         .addSeparatorComponents(new SeparatorBuilder())
         .addTextDisplayComponents(
