@@ -36,8 +36,8 @@ module.exports = async function actualizarListaAsociaciones(client) {
         .addTextDisplayComponents(
           new TextDisplayBuilder().setContent(
             asignado === 'SinAsignar'
-              ? '### 📋 Asociaciones sin asignar'
-              : `### 📌 Asociaciones de <@${asignado}>`
+              ? `### 📋 Sin asignar — ${asociation.length}`
+              : `### 📌 <@${asignado}> — ${asociation.length}`
           )
         );
 
@@ -101,13 +101,7 @@ module.exports = async function actualizarListaAsociaciones(client) {
 
       const sinRenovar = asociations.filter(a => {
         // Buscamos posibles nombres de campo para la fecha de última renovación
-        const last =
-          a.lastRenovacion ??
-          a.last_renovacion ??
-          a.LastRenovacion ??
-          a.ultimaRenovacion ??
-          a.lastRenewal ??
-          null;
+        const last = a.UltimaRenovacion ?? null
 
         const renovacionDays = a.Renovacion ?? a.renovacion ?? null; // número de días
 
@@ -130,13 +124,12 @@ module.exports = async function actualizarListaAsociaciones(client) {
 
       const embed = new EmbedBuilder()
         .setTitle('📊 Resumen de asociaciones')
-        .setColor(0x00b0f4)
+        .setColor(0x7289DA)
         .addFields(
           { name: 'Total', value: `${total}`, inline: true },
           { name: 'Sin asignar', value: `${sinAsignar}`, inline: true },
           { name: 'Sin renovar', value: `${sinRenovar}`, inline: true },
         )
-        .setTimestamp();
 
       return embed;
     }

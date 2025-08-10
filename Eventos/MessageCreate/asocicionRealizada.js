@@ -51,6 +51,7 @@ module.exports = {
         const ranking = await staffData.find().sort({ Renovaciones: -1 });
         const posicion = ranking.findIndex(user => user.ID === asignado) + 1;
 
+
         const embed = new EmbedBuilder()
             .setColor('Blue')
             .setAuthor({ 
@@ -73,6 +74,7 @@ module.exports = {
 
             await tareasAsociaciones.create({ channelId: message.channel.id, userId: asignado, expirationDate: expirationDate })
 
+            doc.UltimaRenovacion = new Date()
         } catch (err) {
             console.error("❌ Error al enviar el mensaje embed:", err);
         }
