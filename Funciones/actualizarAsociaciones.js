@@ -98,7 +98,15 @@ module.exports = async function actualizarListaAsociaciones(client) {
       const ahora = Date.now();
       const total = asociations.length;
 
-      const sinAsignar = asociations.filter(a => !a.Asignado || a.Asignado === 'SinAsignar').length;
+          const canalesEnCategorias = client.channels.cache.filter(ch =>
+      ch.isTextBased() && (ch.parentId === categoria1Id || ch.parentId === categoria2Id)
+    );
+
+    const canalesRegistrados = new Set(asociations.map(aso => aso.Canal));
+
+    // Canales en categorías que NO están registrados
+    const canalesNoRegistrados = canalesEnCategorias.filter(c => !canalesRegistrados.has(c.id));
+
 
       const sinRenovar = asociations.filter(a => {
         // Buscamos posibles nombres de campo para la fecha de última renovación
@@ -128,7 +136,7 @@ module.exports = async function actualizarListaAsociaciones(client) {
         .setColor(0x7289DA)
         .addFields(
           { name: 'Total', value: `${total}`, inline: true },
-          { name: 'Sin asignar', value: `${sinAsignar}`, inline: true },
+          { name: 'Sin asignar', value: `${canalesNoRegistrados.length}`, inline: true },
           { name: 'Sin renovar', value: `${sinRenovar}`, inline: true },
         )
 
