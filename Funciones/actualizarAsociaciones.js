@@ -11,6 +11,9 @@ const {
 } = require('discord.js');
 const Asociacion = require('../Esquemas/asociacionesSchema');
 
+// Constante para el prefijo de canales de staff
+const STAFF_CHANNEL_PREFIX = 'staff-';
+
 module.exports = async function actualizarListaAsociaciones(client) {
   try {
     const TARGET_CHANNEL_ID = '1339987513401413735';
@@ -64,7 +67,7 @@ module.exports = async function actualizarListaAsociaciones(client) {
               new TextDisplayBuilder().setContent(
                 [
                   aso.Canal ? `<:canales:1340014379080618035> <#${aso.Canal}>` : '<:canales:1340014379080618035> Sin canal',
-                  aso.Renovacion ? `🗓️ <t:${renovacionTimestamp}:R>` : 'No definido',
+                  renovacionTimestamp ? `🗓️ <t:${renovacionTimestamp}:R>` : '🗓️ No definido',
                   aso.Representante ? `<:representante:1340014390342193252> <@${aso.Representante}>` : '<:representante:1340014390342193252> Sin representante'
                 ].join('\n')
               )
@@ -74,9 +77,7 @@ module.exports = async function actualizarListaAsociaciones(client) {
             .addSeparatorComponents(new SeparatorBuilder())
             .addTextDisplayComponents(
               new TextDisplayBuilder().setContent(
-                [
-                  aso.Canal ? `<:canales:1340014379080618035> <#${aso.Canal}>` : '<:canales:1340014379080618035> Sin canal'
-                ].join('\n')
+                aso.Canal ? `<:canales:1340014379080618035> <#${aso.Canal}>` : '<:canales:1340014379080618035> Sin canal'
               )
             );
         }
@@ -92,26 +93,16 @@ module.exports = async function actualizarListaAsociaciones(client) {
      * - asociaciones sin renovar (compara lastRenovacion con Renovacion en días)
      * - asociaciones con renovación definida / indefinida
      * @param {Array<Object>} asociations
+     * @param {number} sinAsignarCount - Cantidad de canales sin asignar
      * @returns {EmbedBuilder}
      */
-    function createSummaryEmbed(asociations) {
+    function createSummaryEmbed(asociations, sinAsignarCount) {
       const ahora = Date.now();
       const total = asociations.length;
 
-          const canalesEnCategorias = client.channels.cache.filter(ch =>
-      ch.isTextBased() && (ch.parentId === categoria1Id || ch.parentId === categoria2Id)
-    );
-
-    const canalesRegistrados = new Set(asociations.map(aso => aso.Canal));
-
-    // Canales en categorías que NO están registrados
-    const canalesNoRegistrados = canalesEnCategorias.filter(c => !canalesRegistrados.has(c.id));
-
-
       const sinRenovar = asociations.filter(a => {
         // Buscamos posibles nombres de campo para la fecha de última renovación
-        const last = a.UltimaRenovacion ?? null
-
+        const last = a.UltimaRenovacion ?? null;
         const renovacionDays = a.Renovacion ?? a.renovacion ?? null; // número de días
 
         if (!renovacionDays) {
@@ -135,13 +126,48 @@ module.exports = async function actualizarListaAsociaciones(client) {
         .setTitle('📊 Resumen de asociaciones')
         .setColor(0x7289DA)
         .addFields(
-          { name: 'Total', value: `${total}`, inline: true },
-          { name: 'Sin asignar', value: `${canalesNoRegistrados.length}`, inline: true },
+          { name: 'Total', value: `${total + sinAsignarCount}`, inline: true },
+          { name: 'Sin asignar', value: `${sinAsignarCount}`, inline: true },
           { name: 'Sin renovar', value: `${sinRenovar}`, inline: true },
-        )
+        );
 
       return embed;
     }
+
+    /**
+     * Helper para obtener el nombre del canal desde un objeto aso o ID de canal
+     * @param {Object|string} asoOrChannelId - Objeto asociación o ID del canal
+     * @returns {string} Nombre del canal o string vacío
+     */
+    const getChannelName = (asoOrChannelId) => {
+      try {
+        const channelId = typeof asoOrChannelId === 'string' ? asoOrChannelId : String(asoOrChannelId.Canal);
+        const ch = client.channels.cache.get(channelId);
+        return ch ? ch.name : '';
+      } catch {
+        return '';
+      }
+    };
+
+    /**
+     * Función de comparación personalizada para ordenar canales considerando formato especial
+     * @param {string} nameA 
+     * @param {string} nameB 
+     * @returns {number}
+     */
+    const compareChannelNames = (nameA, nameB) => {
+      // Si ambos nombres están vacíos, son iguales
+      if (!nameA && !nameB) return 0;
+      if (!nameA) return 1; // nameA vacío va al final
+      if (!nameB) return -1; // nameB vacío va al final
+      
+      // Ordenamiento alfabético con configuración en español, case-insensitive
+      return nameA.localeCompare(nameB, 'es', { 
+        sensitivity: 'base', 
+        numeric: true,
+        ignorePunctuation: false 
+      });
+    };
 
     // -------------------------
     // inicio del flujo
@@ -163,9 +189,11 @@ module.exports = async function actualizarListaAsociaciones(client) {
     // Mensajes V2 -> aquellos con flags V2 (container builders)
     const divisionMsgs = botMessages.filter(msg => isV2(msg)).sort((a, b) => a.createdTimestamp - b.createdTimestamp);
 
-    // Obtenemos canales de las dos categorías (filtramos por parentId)
+    // Obtenemos canales de las dos categorías (filtramos por parentId y excluimos canales de staff)
     const canalesEnCategorias = client.channels.cache.filter(ch =>
-      ch.isTextBased() && (ch.parentId === categoria1Id || ch.parentId === categoria2Id)
+      ch.isTextBased() && 
+      (ch.parentId === categoria1Id || ch.parentId === categoria2Id) &&
+      !ch.name.startsWith(STAFF_CHANNEL_PREFIX)
     );
 
     // Traemos todas las asociaciones con Canal definido (las que están registradas)
@@ -176,8 +204,12 @@ module.exports = async function actualizarListaAsociaciones(client) {
       await Promise.all(
         todasAsociacionesDB.map(async (aso) => {
           try {
-            await client.channels.fetch(aso.Canal);
-            return aso;
+            const fetchedChannel = await client.channels.fetch(aso.Canal);
+            // Verificar también que no sea un canal de staff
+            if (fetchedChannel && !fetchedChannel.name.startsWith(STAFF_CHANNEL_PREFIX)) {
+              return aso;
+            }
+            return null;
           } catch {
             return null;
           }
@@ -190,6 +222,11 @@ module.exports = async function actualizarListaAsociaciones(client) {
 
     // Canales en categorías que NO están registrados
     const canalesNoRegistrados = canalesEnCategorias.filter(c => !canalesRegistrados.has(c.id));
+
+    console.log(`📊 Estadísticas:
+    - Canales en categorías (sin staff): ${canalesEnCategorias.size}
+    - Asociaciones registradas: ${asociations.length}
+    - Canales no registrados: ${canalesNoRegistrados.length}`);
 
     // -------------------------
     // Agrupar y ordenar
@@ -205,22 +242,12 @@ module.exports = async function actualizarListaAsociaciones(client) {
     // Aseguramos que exista SinAsignar
     if (!agrupado['SinAsignar']) agrupado['SinAsignar'] = [];
 
-    // Helper para obtener el nombre del canal desde un objeto aso (si existe en cache)
-    const channelNameFromAso = (aso) => {
-      try {
-        const ch = client.channels.cache.get(String(aso.Canal));
-        return ch ? ch.name : '';
-      } catch {
-        return '';
-      }
-    };
-
     // 1) Ordenar internamente cada grupo por nombre de canal (alfabético)
     for (const key of Object.keys(agrupado)) {
       agrupado[key].sort((a, b) => {
-        const nameA = channelNameFromAso(a);
-        const nameB = channelNameFromAso(b);
-        return nameA.localeCompare(nameB, undefined, { sensitivity: 'base', numeric: true });
+        const nameA = getChannelName(a);
+        const nameB = getChannelName(b);
+        return compareChannelNames(nameA, nameB);
       });
     }
 
@@ -241,13 +268,13 @@ module.exports = async function actualizarListaAsociaciones(client) {
             if (member) nameFallback = member.displayName || member.user.username;
           }
         } catch (e) {
-          /* ignore, mantenemos fallback */
+          console.warn(`No se pudo resolver nombre para staff ${key}:`, e.message);
         }
         return { key, name: nameFallback, arr };
       })
     );
 
-    staffWithNames.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base', numeric: true }));
+    staffWithNames.sort((a, b) => a.name.localeCompare(b.name, 'es', { sensitivity: 'base' }));
 
     // Construimos expectedAsociations: staffs ordenados + SinAsignar al final
     const expectedAsociations = [
@@ -257,26 +284,36 @@ module.exports = async function actualizarListaAsociaciones(client) {
 
     // 3) Añadimos canales no registrados a la última agrupación (SinAsignar)
     for (const canal of canalesNoRegistrados.values()) {
-      expectedAsociations[expectedAsociations.length - 1].push({ Canal: canal.id, Asignado: 'SinAsignar' });
+      expectedAsociations[expectedAsociations.length - 1].push({ 
+        Canal: canal.id, 
+        Asignado: 'SinAsignar' 
+      });
     }
 
     // Re-ordenamos la agrupación SinAsignar por nombre de canal una vez añadidos los no registrados
     expectedAsociations[expectedAsociations.length - 1].sort((a, b) => {
-      const nameA = channelNameFromAso(a) || client.channels.cache.get(String(a.Canal))?.name || '';
-      const nameB = channelNameFromAso(b) || client.channels.cache.get(String(b.Canal))?.name || '';
-      return nameA.localeCompare(nameB, undefined, { sensitivity: 'base', numeric: true });
+      const nameA = getChannelName(a);
+      const nameB = getChannelName(b);
+      return compareChannelNames(nameA, nameB);
     });
+
+    console.log(`📝 Orden final:
+    - Staff groups: ${staffWithNames.length}
+    - Sin asignar items: ${expectedAsociations[expectedAsociations.length - 1].length}
+    - Staff order: ${staffWithNames.map(s => s.name).join(', ')}`);
 
     // Esperamos 1 mensaje resumen + N divisiones
     const expectedMessages = 1 + expectedAsociations.length;
+    const sinAsignarCount = expectedAsociations[expectedAsociations.length - 1].length;
 
     // Si no existe mensaje resumen -> limpiamos y creamos todo desde cero
     if (!summaryMsg) {
+      console.log('🔄 No hay mensaje resumen, creando todo desde cero...');
       // borramos todos los mensajes del bot que había
       await Promise.all(botMessages.map(m => m.delete().catch(() => {})));
 
       // Enviamos resumen (embed tradicional)
-      const summaryEmbed = createSummaryEmbed(asociations);
+      const summaryEmbed = createSummaryEmbed(asociations, sinAsignarCount);
       await channel.send({
         embeds: [summaryEmbed],
         allowedMentions: { users: [] }
@@ -292,16 +329,18 @@ module.exports = async function actualizarListaAsociaciones(client) {
         });
       }
 
+      console.log('✅ Mensajes creados desde cero');
       return;
     }
 
     // Si hay menos mensajes de bot de los esperados -> reiniciamos todo (para mantener orden)
     if (botMessages.length < expectedMessages) {
+      console.log('🔄 Menos mensajes de los esperados, reiniciando...');
       // borrar y recrear
       await Promise.all(botMessages.map(m => m.delete().catch(() => {})));
 
       // recreate summary
-      const summaryEmbed = createSummaryEmbed(asociations);
+      const summaryEmbed = createSummaryEmbed(asociations, sinAsignarCount);
       await channel.send({
         embeds: [summaryEmbed],
         allowedMentions: { users: [] }
@@ -316,12 +355,15 @@ module.exports = async function actualizarListaAsociaciones(client) {
         });
       }
 
+      console.log('✅ Mensajes recreados');
       return;
     }
 
     // Si llegamos aquí -> actualizamos los mensajes existentes:
+    console.log('🔄 Actualizando mensajes existentes...');
+    
     // 1) editamos el summaryMsg con datos nuevos
-    const newSummaryEmbed = createSummaryEmbed(asociations);
+    const newSummaryEmbed = createSummaryEmbed(asociations, sinAsignarCount);
     await summaryMsg.edit({
       embeds: [newSummaryEmbed]
     });
@@ -365,7 +407,9 @@ module.exports = async function actualizarListaAsociaciones(client) {
       }
     }
 
+    console.log('✅ Actualización completada');
+
   } catch (error) {
-    console.error(`Error en el proceso de actualización: ${error}`);
+    console.error(`❌ Error en el proceso de actualización: ${error}`);
   }
 }

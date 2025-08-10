@@ -136,6 +136,154 @@ function createStaffOnlyPermissions(guild) {
 }
 
 /**
+ * Organiza un grupo de canales (staff + sus canales asignados) en una posición específica
+ * @param {Guild} guild
+ * @param {Object} staffInfo - Info del staff
+ * @param {Array} channelsOfStaff - Canales asignados al staff
+ * @param {String} targetCategoryId - ID de la categoría destino
+ * @param {Number} startPosition - Posición inicial donde colocar el grupo
+ * @param {Map} associationByChannel - Mapa de asociaciones
+ * @returns {Object} Información del resultado
+ */
+async function organizeStaffGroup(guild, staffInfo, channelsOfStaff, targetCategoryId, startPosition, associationByChannel) {
+  const { staffId, staffDisplayName } = staffInfo;
+  
+  console.log(`👤 Organizando grupo de ${staffDisplayName} en posición ${startPosition}`);
+  
+  // 1) Crear nombre del canal de staff
+  const staffChannelName = `${STAFF_CHANNEL_PREFIX}${staffDisplayName}`
+    .toLowerCase()
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '')
+    .slice(0, 100);
+
+  // 2) Crear o encontrar canal de staff
+  let staffChannel = guild.channels.cache.find(ch => 
+    ch.name === staffChannelName && 
+    ch.type === 0 &&
+    ch.parentId === targetCategoryId
+  );
+
+  if (!staffChannel) {
+    console.log(`🔨 Creando canal de staff: ${staffChannelName}`);
+    try {
+      staffChannel = await guild.channels.create({
+        name: staffChannelName,
+        type: 0,
+        parent: targetCategoryId,
+        position: startPosition,
+        topic: `📋 Canales asignados a ${staffDisplayName}`,
+        reason: 'Canal de organización por staff',
+        permissionOverwrites: createStaffOnlyPermissions(guild)
+      });
+      
+      await sleep(DELAY_BETWEEN_CREATES_MS);
+    } catch (e) {
+      console.error(`❌ Error creando canal de staff ${staffChannelName}:`, e);
+      return null;
+    }
+  } else {
+    // Mover y actualizar canal existente
+    try {
+      await staffChannel.setPosition(startPosition);
+      await sleep(DELAY_BETWEEN_REQUESTS_MS);
+      
+      await staffChannel.setTopic(`📋 Canales asignados a ${staffDisplayName}`);
+      await sleep(DELAY_BETWEEN_REQUESTS_MS);
+      
+      await staffChannel.permissionOverwrites.set(createStaffOnlyPermissions(guild));
+      await sleep(DELAY_BETWEEN_REQUESTS_MS);
+    } catch (e) {
+      console.warn(`⚠️ Error actualizando canal de staff ${staffChannelName}:`, e);
+    }
+  }
+
+  // 3) Ordenar canales alfabéticamente
+  const sortedChannels = channelsOfStaff.sort((a, b) => {
+    // Extraer el nombre sin emojis para ordenar correctamente
+    const nameA = a.name.replace(/[^\w\s-]/g, '').trim() || a.name;
+    const nameB = b.name.replace(/[^\w\s-]/g, '').trim() || b.name;
+    return nameA.localeCompare(nameB, 'es', { sensitivity: 'base' });
+  });
+
+  console.log(`📝 Orden alfabético para ${staffDisplayName}:`, sortedChannels.map(ch => ch.name));
+
+  // 4) Mover y posicionar cada canal en orden
+  let currentPosition = startPosition + 1;
+  let movedCount = 0;
+
+  for (const channel of sortedChannels) {
+    try {
+      // Primero mover a la categoría si no está ahí
+      if (channel.parentId !== targetCategoryId) {
+        console.log(`📦 Moviendo ${channel.name} a categoría ${targetCategoryId}`);
+        await channel.setParent(targetCategoryId, { lockPermissions: false });
+        movedCount++;
+        await sleep(DELAY_BETWEEN_REQUESTS_MS);
+      }
+      
+      // Luego posicionar en el lugar correcto
+      console.log(`📍 Posicionando ${channel.name} en posición ${currentPosition}`);
+      await channel.setPosition(currentPosition);
+      currentPosition++;
+      await sleep(DELAY_BETWEEN_REQUESTS_MS);
+      
+    } catch (e) {
+      console.error(`❌ Error procesando canal ${channel.name}:`, e);
+    }
+  }
+
+  // 5) Actualizar mensaje en canal de staff
+  try {
+    const staffAsociaciones = [];
+    for (const channel of sortedChannels) {
+      const aso = associationByChannel.get(channel.id);
+      if (aso) {
+        staffAsociaciones.push(aso);
+      }
+    }
+    
+    console.log(`📋 Actualizando mensaje para ${staffDisplayName} con ${staffAsociaciones.length} asociaciones`);
+    
+    const container = createContainerForStaff(staffAsociaciones, staffId, staffDisplayName, sortedChannels);
+    const messagePayload = { 
+      components: [container], 
+      flags: MessageFlags.IsComponentsV2 
+    };
+
+    const fetched = await staffChannel.messages.fetch({ limit: LIMIT_FETCH_MESSAGES }).catch(() => null);
+    let botMsg = null;
+    if (fetched) botMsg = fetched.find(m => m.author.id === guild.client.user.id);
+
+    if (botMsg) {
+      console.log(`✏️ Editando mensaje existente en ${staffChannelName}`);
+      await botMsg.edit(messagePayload);
+    } else {
+      console.log(`📝 Enviando nuevo mensaje en ${staffChannelName}`);
+      await staffChannel.send(messagePayload);
+    }
+    
+    await sleep(DELAY_BETWEEN_REQUESTS_MS);
+
+  } catch (err) {
+    console.error(`❌ Error actualizando mensaje para ${staffDisplayName}:`, err);
+  }
+
+  return {
+    staffId,
+    staffDisplayName,
+    staffChannelId: staffChannel.id,
+    staffChannelName,
+    assignedChannelsCount: channelsOfStaff.length,
+    movedChannelsCount: movedCount,
+    targetCategory: targetCategoryId,
+    category: staffId === 'unassigned' ? 'unassigned' : 'assigned',
+    finalPosition: currentPosition // La siguiente posición libre
+  };
+}
+
+/**
  * Organiza canales por staff dentro de las mismas categorías
  * Distribuge equitativamente entre las categorías disponibles
  *
@@ -195,9 +343,7 @@ async function organizaPorStaff(client) {
 
     console.log(`📊 Grupos: ${gruposAsignados.size} staff asignados, ${canalesSinAsignar.length} sin asignar`);
 
-    const results = [];
-    
-    // 4) Ordenar staff por display name alfabéticamente
+    // 4) Preparar información de staff
     const staffWithInfo = [];
     
     for (const staffId of gruposAsignados.keys()) {
@@ -223,257 +369,72 @@ async function organizaPorStaff(client) {
     
     console.log('📋 Orden alfabético de staff:', staffWithInfo.map(s => s.staffDisplayName));
 
-    // 5) Procesar cada staff en orden alfabético
-    for (let i = 0; i < staffWithInfo.length; i++) {
-      const { staffId, staffDisplayName, channels: channelsOfStaff } = staffWithInfo[i];
+    const results = [];
+
+    // 5) Procesar cada categoría independientemente
+    for (let catIndex = 0; catIndex < TARGET_CATEGORY_IDS.length; catIndex++) {
+      const categoryId = TARGET_CATEGORY_IDS[catIndex];
+      console.log(`\n🗂️ Procesando categoría ${categoryId} (${catIndex + 1}/${TARGET_CATEGORY_IDS.length})`);
       
-      // Distribuir equitativamente entre las categorías
-      const targetCategoryId = TARGET_CATEGORY_IDS[i % TARGET_CATEGORY_IDS.length];
+      // Obtener staff asignados a esta categoría (distribución equitativa)
+      const staffForThisCategory = staffWithInfo.filter((_, index) => index % TARGET_CATEGORY_IDS.length === catIndex);
       
-      console.log(`👤 Procesando staff ${staffDisplayName} con ${channelsOfStaff.length} canales en categoría ${targetCategoryId}`);
-
-      // Crear nombre del canal de staff (usar nombre tal cual del servidor)
-      const staffChannelName = `${STAFF_CHANNEL_PREFIX}${staffDisplayName}`
-        .toLowerCase()
-        .replace(/\s+/g, '-')           // espacios → guiones
-        .replace(/-+/g, '-')            // múltiples guiones → uno solo
-        .replace(/^-|-$/g, '')          // quitar guiones al inicio/final
-        .slice(0, 100);                 // límite de Discord
-
-      // 6) Crear o encontrar canal de staff en la categoría correspondiente
-      let staffChannel = guild.channels.cache.find(ch => 
-        ch.name === staffChannelName && 
-        ch.type === 0 &&
-        ch.parentId === targetCategoryId
-      );
-
-      if (!staffChannel) {
-        console.log(`🔨 Creando canal de staff: ${staffChannelName} en categoría ${targetCategoryId}`);
-        try {
-          staffChannel = await guild.channels.create({
-            name: staffChannelName,
-            type: 0,
-            parent: targetCategoryId,
-            topic: `📋 Canales asignados a ${staffDisplayName}`,
-            reason: 'Canal de organización por staff',
-            permissionOverwrites: createStaffOnlyPermissions(guild)
-          });
-          
-          await sleep(DELAY_BETWEEN_CREATES_MS);
-        } catch (e) {
-          console.error(`❌ Error creando canal de staff ${staffChannelName}:`, e);
-          continue;
-        }
-      } else {
-        // Actualizar canal existente
-        try {
-          await staffChannel.setTopic(`📋 Canales asignados a ${staffDisplayName}`);
-          await sleep(DELAY_BETWEEN_REQUESTS_MS);
-          
-          await staffChannel.permissionOverwrites.set(createStaffOnlyPermissions(guild));
-          await sleep(DELAY_BETWEEN_REQUESTS_MS);
-        } catch (e) {
-          console.warn(`⚠️ Error actualizando canal de staff ${staffChannelName}:`, e);
+      console.log(`👥 Staff en esta categoría:`, staffForThisCategory.map(s => s.staffDisplayName));
+      
+      let currentPosition = 0; // Empezar desde arriba en cada categoría
+      
+      // Procesar cada staff en esta categoría
+      for (const staffInfo of staffForThisCategory) {
+        const result = await organizeStaffGroup(
+          guild, 
+          staffInfo, 
+          staffInfo.channels, 
+          categoryId, 
+          currentPosition, 
+          associationByChannel
+        );
+        
+        if (result) {
+          results.push(result);
+          currentPosition = result.finalPosition;
         }
       }
-
-      // 7) Ordenar canales del staff alfabéticamente
-      const sortedChannels = channelsOfStaff.sort((a, b) => a.name.localeCompare(b.name, 'es', { sensitivity: 'base' }));
-      
-      console.log(`📝 Orden alfabético para ${staffDisplayName}:`, sortedChannels.map(ch => ch.name));
-      
-      // Mover canales en el orden alfabético correcto
-      let movedCount = 0;
-      
-      for (let j = 0; j < sortedChannels.length; j++) {
-        const channel = sortedChannels[j];
-        
-        try {
-          // Mover a la categoría correcta si no está ahí
-          if (channel.parentId !== targetCategoryId) {
-            console.log(`📦 Moviendo canal ${channel.name} a categoría ${targetCategoryId}`);
-            await channel.setParent(targetCategoryId, { lockPermissions: false });
-            movedCount++;
-            await sleep(DELAY_BETWEEN_REQUESTS_MS);
-          }
-          
-        } catch (e) {
-          console.error(`❌ Error procesando canal ${channel.name}:`, e);
-        }
-      }
-
-      // 8) Actualizar mensaje en canal de staff (solo container v2)
-      try {
-        // Buscar asociaciones de estos canales para el mensaje (en el mismo orden)
-        const staffAsociaciones = [];
-        for (const channel of sortedChannels) {
-          const aso = associationByChannel.get(channel.id);
-          if (aso) {
-            staffAsociaciones.push(aso);
-          }
-        }
-        
-        console.log(`📋 Preparando mensaje para ${staffDisplayName} con ${staffAsociaciones.length} asociaciones`);
-        
-        const container = createContainerForStaff(staffAsociaciones, staffId, staffDisplayName, sortedChannels);
-        const messagePayload = { 
-          components: [container], 
-          flags: MessageFlags.IsComponentsV2 
-        };
-
-        const fetched = await staffChannel.messages.fetch({ limit: LIMIT_FETCH_MESSAGES }).catch(() => null);
-        let botMsg = null;
-        if (fetched) botMsg = fetched.find(m => m.author.id === client.user.id);
-
-        if (botMsg) {
-          console.log(`✏️ Editando mensaje existente en ${staffChannelName}`);
-          await botMsg.edit(messagePayload);
-        } else {
-          console.log(`📝 Enviando nuevo mensaje en ${staffChannelName}`);
-          await staffChannel.send(messagePayload);
-        }
-        
-        await sleep(DELAY_BETWEEN_REQUESTS_MS);
-
-      } catch (err) {
-        console.error(`❌ Error actualizando mensaje para ${staffDisplayName}:`, err);
-      }
-
-      results.push({
-        staffId,
-        staffDisplayName,
-        staffChannelId: staffChannel.id,
-        staffChannelName,
-        assignedChannelsCount: channelsOfStaff.length,
-        movedChannelsCount: movedCount,
-        targetCategory: targetCategoryId,
-        category: 'assigned'
-      });
     }
 
-    // 9) Procesar canales sin asignar AL FINAL de la última categoría
+    // 6) Procesar canales sin asignar AL FINAL de la última categoría
     if (canalesSinAsignar.length > 0) {
       const lastCategoryId = TARGET_CATEGORY_IDS[TARGET_CATEGORY_IDS.length - 1];
+      console.log(`\n❓ Procesando canales sin asignar en última categoría: ${lastCategoryId}`);
       
-      console.log(`❓ Procesando ${canalesSinAsignar.length} canales sin asignar en última categoría: ${lastCategoryId}`);
-
-      const unassignedChannelName = `${STAFF_CHANNEL_PREFIX}sin-asignar`;
-
-      // Crear o encontrar canal de sin asignar en la última categoría
-      let unassignedChannel = guild.channels.cache.find(ch => 
-        ch.name === unassignedChannelName && 
-        ch.type === 0 &&
-        ch.parentId === lastCategoryId
-      );
-
-      if (!unassignedChannel) {
-        console.log(`🔨 Creando canal sin asignar: ${unassignedChannelName}`);
-        try {
-          unassignedChannel = await guild.channels.create({
-            name: unassignedChannelName,
-            type: 0,
-            parent: lastCategoryId,
-            topic: '📋 Canales sin asignar a ningún staff',
-            reason: 'Canal de organización para canales sin asignar',
-            permissionOverwrites: createStaffOnlyPermissions(guild)
-          });
-          
-          await sleep(DELAY_BETWEEN_CREATES_MS);
-        } catch (e) {
-          console.error(`❌ Error creando canal sin asignar:`, e);
-        }
-      } else {
-        // Actualizar canal existente
-        try {
-          await unassignedChannel.setTopic('📋 Canales sin asignar a ningún staff');
-          await sleep(DELAY_BETWEEN_REQUESTS_MS);
-          
-          await unassignedChannel.permissionOverwrites.set(createStaffOnlyPermissions(guild));
-          await sleep(DELAY_BETWEEN_REQUESTS_MS);
-        } catch (e) {
-          console.warn(`⚠️ Error actualizando canal sin asignar:`, e);
-        }
-      }
-
-      // Ordenar canales sin asignar alfabéticamente
-      const sortedUnassigned = canalesSinAsignar.sort((a, b) => a.name.localeCompare(b.name, 'es', { sensitivity: 'base' }));
-      console.log(`📝 Orden alfabético sin asignar:`, sortedUnassigned.map(ch => ch.name));
+      // Calcular posición inicial para sin asignar (después del último staff en esa categoría)
+      const lastCategoryResults = results.filter(r => r.targetCategory === lastCategoryId);
+      const lastPosition = lastCategoryResults.length > 0 
+        ? Math.max(...lastCategoryResults.map(r => r.finalPosition || 0))
+        : 0;
       
-      let movedUnassignedCount = 0;
-      
-      for (let k = 0; k < sortedUnassigned.length; k++) {
-        const channel = sortedUnassigned[k];
-        
-        try {
-          if (channel.parentId !== lastCategoryId) {
-            console.log(`📦 Moviendo canal sin asignar ${channel.name} a última categoría`);
-            await channel.setParent(lastCategoryId, { lockPermissions: false });
-            movedUnassignedCount++;
-            await sleep(DELAY_BETWEEN_REQUESTS_MS);
-          }
-        } catch (e) {
-          console.error(`❌ Error moviendo canal sin asignar ${channel.name}:`, e);
-        }
-      }
-
-      // Actualizar mensaje en canal sin asignar (solo container v2)
-      if (unassignedChannel) {
-        try {
-          // Crear asociaciones dummy para canales sin asignar
-          const unassignedAsociaciones = sortedUnassigned.map(ch => ({
-            Canal: ch.id,
-            Asignado: null,
-            Renovacion: null,
-            Representante: null
-          }));
-
-          console.log(`📋 Preparando mensaje sin asignar con ${unassignedAsociaciones.length} asociaciones`);
-          
-          const container = createContainerForStaff(unassignedAsociaciones, 'unassigned', 'Sin Asignar', sortedUnassigned);
-          const messagePayload = { 
-            components: [container], 
-            flags: MessageFlags.IsComponentsV2 
-          };
-
-          const fetched = await unassignedChannel.messages.fetch({ limit: LIMIT_FETCH_MESSAGES }).catch(() => null);
-          let botMsg = null;
-          if (fetched) botMsg = fetched.find(m => m.author.id === client.user.id);
-
-          if (botMsg) {
-            console.log(`✏️ Editando mensaje sin asignar`);
-            await botMsg.edit(messagePayload);
-          } else {
-            console.log(`📝 Enviando nuevo mensaje sin asignar`);
-            await unassignedChannel.send(messagePayload);
-          }
-          
-          await sleep(DELAY_BETWEEN_REQUESTS_MS);
-
-        } catch (err) {
-          console.error(`❌ Error actualizando mensaje sin asignar:`, err);
-        }
-      }
-
-      results.push({
+      const unassignedInfo = {
         staffId: 'unassigned',
-        staffDisplayName: 'Sin Asignar',
-        staffChannelId: unassignedChannel?.id,
-        staffChannelName: unassignedChannelName,
-        assignedChannelsCount: canalesSinAsignar.length,
-        movedChannelsCount: movedUnassignedCount,
-        targetCategory: lastCategoryId,
-        category: 'unassigned'
-      });
+        staffDisplayName: 'Sin Asignar'
+      };
+      
+      const unassignedResult = await organizeStaffGroup(
+        guild,
+        unassignedInfo,
+        canalesSinAsignar,
+        lastCategoryId,
+        lastPosition,
+        associationByChannel
+      );
+      
+      if (unassignedResult) {
+        results.push(unassignedResult);
+      }
     }
 
-    // 10) Reorganizar posiciones finales después de mover todos los canales
-    console.log('🔄 Reorganizando posiciones finales...');
-    await reorganizeChannelPositions(guild, results, associationByChannel);
-
-    // 11) Limpiar canales de staff obsoletos
+    // 7) Limpiar canales de staff obsoletos
     await cleanupObsoleteStaffChannels(guild, results);
 
-    console.log('✅ organizaPorStaff completado:');
+    console.log('\n✅ organizaPorStaff completado:');
     console.log(`   • ${results.filter(r => r.category === 'assigned').length} canales de staff asignados`);
     console.log(`   • ${results.filter(r => r.category === 'unassigned').length} canal sin asignar`);
     console.log(`   • Total canales organizados: ${results.reduce((sum, r) => sum + r.assignedChannelsCount, 0)}`);
@@ -492,88 +453,13 @@ async function organizaPorStaff(client) {
 }
 
 /**
- * Reorganiza las posiciones de los canales después de mover todos
- * @param {Guild} guild 
- * @param {Array} results 
- * @param {Map} associationByChannel - Mapa de asociaciones por canal
- */
-async function reorganizeChannelPositions(guild, results, associationByChannel) {
-  try {
-    for (const categoryId of TARGET_CATEGORY_IDS) {
-      console.log(`🔄 Reorganizando posiciones en categoría ${categoryId}`);
-      
-      // Obtener resultados de esta categoría ordenados alfabéticamente
-      const categoryResults = results
-        .filter(r => r.targetCategory === categoryId)
-        .sort((a, b) => {
-          if (a.category === 'unassigned') return 1; // Sin asignar va al final
-          if (b.category === 'unassigned') return -1;
-          return a.staffDisplayName.localeCompare(b.staffDisplayName, 'es', { sensitivity: 'base' });
-        });
-      
-      let currentPosition = 0;
-      
-      for (const result of categoryResults) {
-        const staffChannel = guild.channels.cache.get(result.staffChannelId);
-        if (!staffChannel) continue;
-        
-        console.log(`📍 Posicionando ${result.staffDisplayName} en posición ${currentPosition}`);
-        
-        // Posicionar canal de staff
-        await staffChannel.setPosition(currentPosition);
-        currentPosition++;
-        await sleep(DELAY_BETWEEN_REQUESTS_MS);
-        
-        // Obtener canales asignados a este staff
-        let channelsOfStaff = [];
-        
-        if (result.category === 'assigned') {
-          // Para staff asignado: buscar canales por asociación
-          channelsOfStaff = guild.channels.cache
-            .filter(ch => 
-              ch.parentId === categoryId && 
-              ch.type === 0 && 
-              !ch.name.startsWith(STAFF_CHANNEL_PREFIX) &&
-              associationByChannel.has(ch.id) &&
-              String(associationByChannel.get(ch.id).Asignado) === result.staffId
-            )
-            .sort((a, b) => a.name.localeCompare(b.name, 'es', { sensitivity: 'base' }));
-        } else if (result.category === 'unassigned') {
-          // Para sin asignar: buscar canales sin asociación o sin asignar
-          channelsOfStaff = guild.channels.cache
-            .filter(ch => 
-              ch.parentId === categoryId && 
-              ch.type === 0 && 
-              !ch.name.startsWith(STAFF_CHANNEL_PREFIX) &&
-              (!associationByChannel.has(ch.id) || !associationByChannel.get(ch.id).Asignado)
-            )
-            .sort((a, b) => a.name.localeCompare(b.name, 'es', { sensitivity: 'base' }));
-        }
-        
-        console.log(`📝 Canales de ${result.staffDisplayName}:`, channelsOfStaff.map(ch => ch.name));
-        
-        // Posicionar canales del staff
-        for (const channel of channelsOfStaff) {
-          console.log(`  📍 Posicionando ${channel.name} en posición ${currentPosition}`);
-          await channel.setPosition(currentPosition);
-          currentPosition++;
-          await sleep(DELAY_BETWEEN_REQUESTS_MS);
-        }
-      }
-    }
-  } catch (error) {
-    console.error('❌ Error reorganizando posiciones:', error);
-  }
-}
-
-/**
  * Limpia canales de staff que ya no tienen canales asignados
  * @param {Guild} guild 
  * @param {Array} currentResults 
  */
 async function cleanupObsoleteStaffChannels(guild, currentResults) {
   try {
-    console.log('🧹 Limpiando canales de staff obsoletos...');
+    console.log('\n🧹 Limpiando canales de staff obsoletos...');
     
     const activeStaffChannelIds = new Set(currentResults.map(r => r.staffChannelId).filter(Boolean));
     
