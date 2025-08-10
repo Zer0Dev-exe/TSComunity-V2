@@ -26,6 +26,45 @@ module.exports = async function actualizarListaAsociaciones(client) {
     const isV2 = (msg) => Boolean((msg.flags ?? 0) & MessageFlags.IsComponentsV2);
 
     /**
+     * Función de comparación personalizada para ordenar canales considerando formato especial
+     * Misma lógica que organizaPorStaff: extrae el nombre sin emojis para ordenar correctamente
+     * @param {string} nameA 
+     * @param {string} nameB 
+     * @returns {number}
+     */
+    const compareChannelNames = (nameA, nameB) => {
+      // Si ambos nombres están vacíos, son iguales
+      if (!nameA && !nameB) return 0;
+      if (!nameA) return 1; // nameA vacío va al final
+      if (!nameB) return -1; // nameB vacío va al final
+      
+      // Extraer el nombre sin emojis para ordenar correctamente (igual que organizaPorStaff)
+      const cleanNameA = nameA.replace(/[^\w\s-]/g, '').trim() || nameA;
+      const cleanNameB = nameB.replace(/[^\w\s-]/g, '').trim() || nameB;
+      
+      // Ordenamiento alfabético con configuración en español, case-insensitive
+      return cleanNameA.localeCompare(cleanNameB, 'es', { 
+        sensitivity: 'base', 
+        numeric: true
+      });
+    };
+
+    /**
+     * Helper para obtener el nombre del canal desde un objeto aso o ID de canal
+     * @param {Object|string} asoOrChannelId - Objeto asociación o ID del canal
+     * @returns {string} Nombre del canal o string vacío
+     */
+    const getChannelName = (asoOrChannelId) => {
+      try {
+        const channelId = typeof asoOrChannelId === 'string' ? asoOrChannelId : String(asoOrChannelId.Canal);
+        const ch = client.channels.cache.get(channelId);
+        return ch ? ch.name : '';
+      } catch {
+        return '';
+      }
+    };
+
+    /**
      * Crea un ContainerBuilder para una lista de asociaciones (una "división")
      * @param {Array<Object>} asociation
      * @returns {ContainerBuilder}
@@ -134,41 +173,6 @@ module.exports = async function actualizarListaAsociaciones(client) {
       return embed;
     }
 
-    /**
-     * Helper para obtener el nombre del canal desde un objeto aso o ID de canal
-     * @param {Object|string} asoOrChannelId - Objeto asociación o ID del canal
-     * @returns {string} Nombre del canal o string vacío
-     */
-    const getChannelName = (asoOrChannelId) => {
-      try {
-        const channelId = typeof asoOrChannelId === 'string' ? asoOrChannelId : String(asoOrChannelId.Canal);
-        const ch = client.channels.cache.get(channelId);
-        return ch ? ch.name : '';
-      } catch {
-        return '';
-      }
-    };
-
-    /**
-     * Función de comparación personalizada para ordenar canales considerando formato especial
-     * @param {string} nameA 
-     * @param {string} nameB 
-     * @returns {number}
-     */
-    const compareChannelNames = (nameA, nameB) => {
-      // Si ambos nombres están vacíos, son iguales
-      if (!nameA && !nameB) return 0;
-      if (!nameA) return 1; // nameA vacío va al final
-      if (!nameB) return -1; // nameB vacío va al final
-      
-      // Ordenamiento alfabético con configuración en español, case-insensitive
-      return nameA.localeCompare(nameB, 'es', { 
-        sensitivity: 'base', 
-        numeric: true,
-        ignorePunctuation: false 
-      });
-    };
-
     // -------------------------
     // inicio del flujo
     // -------------------------
@@ -229,7 +233,7 @@ module.exports = async function actualizarListaAsociaciones(client) {
     - Canales no registrados: ${canalesNoRegistrados.length}`);
 
     // -------------------------
-    // Agrupar y ordenar
+    // Agrupar y ordenar (MEJORADO)
     // -------------------------
     // Agrupamos por Asignado (o 'SinAsignar')
     const agrupado = asociations.reduce((acc, aso) => {
@@ -242,18 +246,28 @@ module.exports = async function actualizarListaAsociaciones(client) {
     // Aseguramos que exista SinAsignar
     if (!agrupado['SinAsignar']) agrupado['SinAsignar'] = [];
 
-    // 1) Ordenar internamente cada grupo por nombre de canal (alfabético)
-    for (const key of Object.keys(agrupado)) {
-      agrupado[key].sort((a, b) => {
+    // 1) Ordenar internamente cada grupo por nombre de canal (alfabético con nueva lógica)
+    console.log('🔤 Ordenando canales dentro de cada grupo...');
+    
+    for (const [key, group] of Object.entries(agrupado)) {
+      const beforeSort = group.map(aso => getChannelName(aso));
+      
+      group.sort((a, b) => {
         const nameA = getChannelName(a);
         const nameB = getChannelName(b);
         return compareChannelNames(nameA, nameB);
       });
+      
+      const afterSort = group.map(aso => getChannelName(aso));
+      console.log(`  📝 ${key === 'SinAsignar' ? 'Sin Asignar' : `Staff ${key}`}: ${afterSort.length} canales`);
+      console.log(`     Orden: ${afterSort.slice(0, 3).join(', ')}${afterSort.length > 3 ? '...' : ''}`);
     }
 
     // 2) Ordenar las claves (staffs) alfabéticamente por displayName (excluyendo 'SinAsignar')
     const staffEntries = Object.entries(agrupado).filter(([key]) => key !== 'SinAsignar');
 
+    console.log('👥 Resolviendo nombres de staff para ordenar...');
+    
     // Resolvemos displayNames de forma cache-first (menos peticiones) y luego ordenamos
     const staffWithNames = await Promise.all(
       staffEntries.map(async ([key, arr]) => {
@@ -274,7 +288,10 @@ module.exports = async function actualizarListaAsociaciones(client) {
       })
     );
 
+    // Ordenar staff alfabéticamente (mismo método que organizaPorStaff)
     staffWithNames.sort((a, b) => a.name.localeCompare(b.name, 'es', { sensitivity: 'base' }));
+
+    console.log(`📋 Orden final de staff: ${staffWithNames.map(s => s.name).join(', ')}`);
 
     // Construimos expectedAsociations: staffs ordenados + SinAsignar al final
     const expectedAsociations = [
@@ -283,6 +300,8 @@ module.exports = async function actualizarListaAsociaciones(client) {
     ];
 
     // 3) Añadimos canales no registrados a la última agrupación (SinAsignar)
+    console.log('📋 Procesando canales no registrados...');
+    
     for (const canal of canalesNoRegistrados.values()) {
       expectedAsociations[expectedAsociations.length - 1].push({ 
         Canal: canal.id, 
@@ -291,16 +310,23 @@ module.exports = async function actualizarListaAsociaciones(client) {
     }
 
     // Re-ordenamos la agrupación SinAsignar por nombre de canal una vez añadidos los no registrados
-    expectedAsociations[expectedAsociations.length - 1].sort((a, b) => {
+    const sinAsignarGroup = expectedAsociations[expectedAsociations.length - 1];
+    const beforeSinAsignar = sinAsignarGroup.map(aso => getChannelName(aso));
+    
+    sinAsignarGroup.sort((a, b) => {
       const nameA = getChannelName(a);
       const nameB = getChannelName(b);
       return compareChannelNames(nameA, nameB);
     });
+    
+    const afterSinAsignar = sinAsignarGroup.map(aso => getChannelName(aso));
+    console.log(`📝 Sin Asignar final: ${afterSinAsignar.length} canales`);
+    console.log(`   Orden: ${afterSinAsignar.slice(0, 5).join(', ')}${afterSinAsignar.length > 5 ? '...' : ''}`);
 
-    console.log(`📝 Orden final:
+    console.log(`📝 Resumen del ordenamiento:
     - Staff groups: ${staffWithNames.length}
     - Sin asignar items: ${expectedAsociations[expectedAsociations.length - 1].length}
-    - Staff order: ${staffWithNames.map(s => s.name).join(', ')}`);
+    - Total de grupos: ${expectedAsociations.length}`);
 
     // Esperamos 1 mensaje resumen + N divisiones
     const expectedMessages = 1 + expectedAsociations.length;

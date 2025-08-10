@@ -274,7 +274,7 @@ const actualizarListaAsociaciones = require('./Funciones/actualizarAsociaciones.
 setInterval(async () => await actualizarListaAsociaciones(client), 100000);
 
 const ordenarAsociaciones = require('./Funciones/ordenarAsociaciones.js')
-setInterval(async () => await ordenarAsociaciones(client), 1000 * 60 * 2);
+setInterval(async () => await ordenarAsociaciones(client), 1000 * 60 * 30);
 
 client.on('interactionCreate', async interaction => {
   if (interaction.isAutocomplete()) {
