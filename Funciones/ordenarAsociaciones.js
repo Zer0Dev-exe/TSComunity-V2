@@ -134,6 +134,29 @@ function createStaffOnlyPermissions(guild) {
 }
 
 /**
+ * Crea un embed simple como fallback
+ * @param {String} staffId 
+ * @param {String} staffDisplayName 
+ * @param {Array} sortedChannels 
+ * @param {Array} staffAsociaciones 
+ * @returns {EmbedBuilder}
+ */
+function createFallbackEmbed(staffId, staffDisplayName, sortedChannels, staffAsociaciones) {
+  const isUnassigned = staffId === 'unassigned' || staffId === 'SinAsignar';
+  
+  return new EmbedBuilder()
+    .setTitle(isUnassigned ? '📋 Sin asignar' : `📌 ${staffDisplayName}`)
+    .setColor(isUnassigned ? 0xffcc00 : 0x00b0f4)
+    .setDescription(
+      sortedChannels.length > 0 
+        ? sortedChannels.map((ch, idx) => `${idx + 1}. <#${ch.id}> — \`${ch.name}\``).join('\n')
+        : 'No hay canales'
+    )
+    .setFooter({ text: `Total: ${staffAsociaciones.length} asociaciones` })
+    .setTimestamp();
+}
+
+/**
  * Organiza canales por staff dentro de las mismas categorías
  * Distribuje equitativamente entre las categorías disponibles
  *
@@ -328,9 +351,9 @@ async function organizaPorStaff(client) {
       // Actualizar contador de posición para esta categoría
       categoryPositions.set(targetCategoryId, currentPos);
 
-      // 7) Actualizar mensaje en canal de staff con container
+      // 7) Actualizar mensaje en canal de staff
       try {
-        // Buscar asociaciones de estos canales para el container (en el mismo orden)
+        // Buscar asociaciones de estos canales para el mensaje (en el mismo orden)
         const staffAsociaciones = [];
         for (const channel of sortedChannels) {
           const aso = associationByChannel.get(channel.id);
@@ -339,48 +362,46 @@ async function organizaPorStaff(client) {
           }
         }
         
-        console.log(`📋 Creando container para ${staffDisplayName} con ${staffAsociaciones.length} asociaciones`);
+        console.log(`📋 Preparando mensaje para ${staffDisplayName} con ${staffAsociaciones.length} asociaciones`);
         
-        // Crear container personalizado con el orden correcto
-        const container = createContainerForStaff(staffAsociaciones, staffId, staffDisplayName, sortedChannels);
-        const messagePayload = { 
-          components: [container], 
-          flags: MessageFlags.IsComponentsV2 
-        };
+        // Intentar enviar container primero
+        let messageSuccess = false;
+        
+        try {
+          const container = createContainerForStaff(staffAsociaciones, staffId, staffDisplayName, sortedChannels);
+          const messagePayload = { 
+            components: [container], 
+            flags: MessageFlags.IsComponentsV2 
+          };
 
-        const fetched = await staffChannel.messages.fetch({ limit: LIMIT_FETCH_MESSAGES }).catch(() => null);
-        let botMsg = null;
-        if (fetched) botMsg = fetched.find(m => m.author.id === client.user.id);
+          const fetched = await staffChannel.messages.fetch({ limit: LIMIT_FETCH_MESSAGES }).catch(() => null);
+          let botMsg = null;
+          if (fetched) botMsg = fetched.find(m => m.author.id === client.user.id);
 
-        if (botMsg) {
-          console.log(`✏️ Editando mensaje existente en ${staffChannelName}`);
-          await botMsg.edit(messagePayload);
-        } else {
-          console.log(`📝 Enviando nuevo mensaje en ${staffChannelName}`);
-          await staffChannel.send(messagePayload);
+          if (botMsg) {
+            console.log(`✏️ Editando mensaje existente en ${staffChannelName}`);
+            await botMsg.edit(messagePayload);
+          } else {
+            console.log(`📝 Enviando nuevo mensaje en ${staffChannelName}`);
+            await staffChannel.send(messagePayload);
+          }
+          
+          messageSuccess = true;
+          await sleep(DELAY_BETWEEN_REQUESTS_MS);
+        } catch (containerErr) {
+          console.warn(`⚠️ Error con container para ${staffDisplayName}:`, containerErr.message);
         }
 
-        await sleep(DELAY_BETWEEN_REQUESTS_MS);
-      } catch (err) {
-        console.error(`❌ Error actualizando mensaje en canal de staff ${staffChannelName}:`, err);
-        
-        // Fallback con embed si el container falla
-        try {
-          const channelIds = sortedChannels.map(ch => ch.id);
-          const staffAsociaciones = asociacionesDB.filter(a => channelIds.includes(a.Canal));
+        // Si el container falló, usar embed como fallback
+        if (!messageSuccess) {
+          console.log(`🔄 Usando embed fallback para ${staffDisplayName}`);
           
-          const embed = new EmbedBuilder()
-            .setTitle(isUnassigned ? '📋 Sin asignar' : `📌 ${staffDisplayName}`)
-            .setColor(isUnassigned ? 0xffcc00 : 0x00b0f4)
-            .setDescription(
-              sortedChannels.length > 0 
-                ? sortedChannels.map((ch, idx) => `${idx + 1}. <#${ch.id}> — \`${ch.name}\``).join('\n')
-                : 'No hay canales'
-            )
-            .setFooter({ text: `Total: ${staffAsociaciones.length} asociaciones` })
-            .setTimestamp();
-
+          const embed = createFallbackEmbed(staffId, staffDisplayName, sortedChannels, staffAsociaciones);
           const embedPayload = { embeds: [embed] };
+
+          const fetched = await staffChannel.messages.fetch({ limit: LIMIT_FETCH_MESSAGES }).catch(() => null);
+          let botMsg = null;
+          if (fetched) botMsg = fetched.find(m => m.author.id === client.user.id);
 
           if (botMsg) {
             await botMsg.edit(embedPayload);
@@ -389,9 +410,11 @@ async function organizaPorStaff(client) {
           }
           
           console.log(`✅ Fallback embed enviado para ${staffDisplayName}`);
-        } catch (fallbackErr) {
-          console.error(`❌ Error con fallback embed para ${staffDisplayName}:`, fallbackErr);
+          await sleep(DELAY_BETWEEN_REQUESTS_MS);
         }
+
+      } catch (err) {
+        console.error(`❌ Error general actualizando mensaje para ${staffDisplayName}:`, err);
       }
 
       results.push({
@@ -497,57 +520,59 @@ async function organizaPorStaff(client) {
             Representante: null
           }));
 
-          console.log(`📋 Creando container sin asignar con ${unassignedAsociaciones.length} asociaciones`);
+          console.log(`📋 Preparando mensaje sin asignar con ${unassignedAsociaciones.length} asociaciones`);
           
-          const container = createContainerForStaff(unassignedAsociaciones, 'unassigned', 'Sin Asignar', sortedUnassigned);
-          const messagePayload = { 
-            components: [container], 
-            flags: MessageFlags.IsComponentsV2 
-          };
-
-          const fetched = await unassignedChannel.messages.fetch({ limit: LIMIT_FETCH_MESSAGES }).catch(() => null);
-          let botMsg = null;
-          if (fetched) botMsg = fetched.find(m => m.author.id === client.user.id);
-
-          if (botMsg) {
-            console.log(`✏️ Editando mensaje sin asignar`);
-            await botMsg.edit(messagePayload);
-          } else {
-            console.log(`📝 Enviando nuevo mensaje sin asignar`);
-            await unassignedChannel.send(messagePayload);
-          }
-
-          await sleep(DELAY_BETWEEN_REQUESTS_MS);
-        } catch (err) {
-          console.error(`❌ Error actualizando mensaje en canal sin asignar:`, err);
+          // Intentar container primero
+          let unassignedMessageSuccess = false;
           
-          // Fallback con embed
           try {
-            const embed = new EmbedBuilder()
-              .setTitle('❓ Canales Sin Asignar')
-              .setColor(0xffcc00)
-              .setDescription(
-                sortedUnassigned.length > 0 
-                  ? sortedUnassigned.map((c, idx) => `${idx + 1}. <#${c.id}> — \`${c.name}\``).join('\n')
-                  : '_No hay canales sin asignar_'
-              )
-              .setFooter({ text: `Total: ${sortedUnassigned.length} canales` })
-              .setTimestamp();
+            const container = createContainerForStaff(unassignedAsociaciones, 'unassigned', 'Sin Asignar', sortedUnassigned);
+            const messagePayload = { 
+              components: [container], 
+              flags: MessageFlags.IsComponentsV2 
+            };
 
             const fetched = await unassignedChannel.messages.fetch({ limit: LIMIT_FETCH_MESSAGES }).catch(() => null);
             let botMsg = null;
             if (fetched) botMsg = fetched.find(m => m.author.id === client.user.id);
 
             if (botMsg) {
-              await botMsg.edit({ embeds: [embed] });
+              console.log(`✏️ Editando mensaje sin asignar`);
+              await botMsg.edit(messagePayload);
             } else {
-              await unassignedChannel.send({ embeds: [embed] });
+              console.log(`📝 Enviando nuevo mensaje sin asignar`);
+              await unassignedChannel.send(messagePayload);
+            }
+            
+            unassignedMessageSuccess = true;
+            await sleep(DELAY_BETWEEN_REQUESTS_MS);
+          } catch (containerErr) {
+            console.warn(`⚠️ Error con container sin asignar:`, containerErr.message);
+          }
+
+          // Fallback con embed si el container falla
+          if (!unassignedMessageSuccess) {
+            console.log(`🔄 Usando embed fallback para sin asignar`);
+            
+            const embed = createFallbackEmbed('unassigned', 'Sin Asignar', sortedUnassigned, unassignedAsociaciones);
+            const embedPayload = { embeds: [embed] };
+
+            const fetched = await unassignedChannel.messages.fetch({ limit: LIMIT_FETCH_MESSAGES }).catch(() => null);
+            let botMsg = null;
+            if (fetched) botMsg = fetched.find(m => m.author.id === client.user.id);
+
+            if (botMsg) {
+              await botMsg.edit(embedPayload);
+            } else {
+              await unassignedChannel.send(embedPayload);
             }
             
             console.log(`✅ Fallback embed sin asignar enviado`);
-          } catch (fallbackErr) {
-            console.error(`❌ Error con fallback embed sin asignar:`, fallbackErr);
+            await sleep(DELAY_BETWEEN_REQUESTS_MS);
           }
+
+        } catch (err) {
+          console.error(`❌ Error general actualizando mensaje sin asignar:`, err);
         }
       }
 
