@@ -221,18 +221,15 @@ async function organizeStaffGroup(guild, staffInfo, channelsOfStaff, targetCateg
   for (const channel of sortedChannels) {
     try {
       // Primero mover a la categoría si no está ahí
-      if (channel.parentId !== targetCategoryId) {
+
         console.log(`📦 Moviendo ${channel.name} a categoría ${targetCategoryId}`);
-        await channel.setParent(targetCategoryId, { lockPermissions: false });
+        await channel.edit({
+            parent: targetCategoryId,
+            position: currentPosition
+        });
         movedCount++;
+        currentPosition++;
         await sleep(DELAY_BETWEEN_MOVES_MS); // Delay más largo para moves
-      }
-      
-      // Luego posicionar en el lugar correcto
-      console.log(`📍 Posicionando ${channel.name} en posición ${currentPosition}`);
-      await channel.setPosition(currentPosition);
-      currentPosition++;
-      await sleep(DELAY_BETWEEN_REQUESTS_MS);
       
     } catch (e) {
       console.error(`❌ Error procesando canal ${channel.name}:`, e);
