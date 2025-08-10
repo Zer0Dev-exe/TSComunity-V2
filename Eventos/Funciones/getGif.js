@@ -10,7 +10,7 @@ async function getGif(query) {
         params: {
             key: TENORKEY,
             q: query,
-            limit: 40,
+            limit: 40, 
             contentfilter: 'high',
             media_filter: 'minimal',
             locale: 'en_US',

@@ -273,6 +273,9 @@ message.edit(`
 const actualizarListaAsociaciones = require('./Funciones/actualizarAsociaciones.js')
 setInterval(async () => await actualizarListaAsociaciones(client), 100000);
 
+const ordenarAsociaciones = require('./Funciones/ordenarAsociaciones.js')
+setInterval(async () => await ordenarAsociaciones(client), 1000 * 60 * 2);
+
 client.on('interactionCreate', async interaction => {
   if (interaction.isAutocomplete()) {
    const command = client.commands.get(interaction.commandName);
