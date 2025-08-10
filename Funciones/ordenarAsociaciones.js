@@ -10,7 +10,6 @@ const {
   EmbedBuilder,
   PermissionsBitField
 } = require('discord.js');
-const { ContainerBuilder, TextDisplayBuilder, SeparatorBuilder } = require('@discord-player/utils');
 const Asociacion = require('../Esquemas/asociacionesSchema');
 
 // CONFIG — reemplaza estos IDs por los de tu servidor
