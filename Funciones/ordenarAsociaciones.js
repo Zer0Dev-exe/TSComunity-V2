@@ -33,30 +33,9 @@ function sleep(ms) {
 }
 
 /**
- * Sanitiza una parte de nombre para convertirla en slug usable como nombre de canal
- * Si la parte queda vacía, devuelve null para que el caller ponga fallback.
- * @param {string} input
- * @returns {string|null}
- */
-function slugifyName(input) {
-  if (!input) return null;
-  const slug = String(input)
-    .toLowerCase()
-    .normalize('NFKD') // intenta normalizar acentos
-    .replace(/[\u0300-\u036f]/g, '') // eliminar marcas
-    .replace(/[^\w\s-]/g, '') // eliminar caracteres no alfanuméricos
-    .trim()
-    .replace(/\s+/g, '-')
-    .replace(/-+/g, '-')
-    .replace(/^-|-$/g, '')
-    .slice(0, 90); // dejar margen para prefijo + id
-  return slug.length > 0 ? slug : null;
-}
-
-/**
  * Crea un container para mostrar las asociaciones de un staff
  * @param {Array} asociaciones - Array de asociaciones del staff
- * @param {String} staffId - ID del staff o 'unassigned'
+ * @param {String} staffId - ID del staff o 'SinAsignar'
  * @param {String} staffDisplayName - Nombre para mostrar del staff
  * @param {Array} sortedChannels - Canales ordenados alfabéticamente
  * @returns {ContainerBuilder} Container formateado
@@ -99,16 +78,14 @@ function createContainerForStaff(asociaciones, staffId, staffDisplayName, sorted
     
     if (!isUnassigned) {
       // Para staff asignado - mostrar toda la info
-      const lastDate = aso.UltimaRenovacion ? new Date(aso.UltimaRenovacion) : null;
-      const renovacionTimestamp = lastDate && !Number.isNaN(lastDate.getTime()) ? Math.floor(lastDate.getTime() / 1000) : null;
-
+             const renovacionTimestamp = Math.floor(aso.UltimaRenovacion?.getTime() / 1000);
       container
         .addSeparatorComponents(new SeparatorBuilder())
         .addTextDisplayComponents(
           new TextDisplayBuilder().setContent(
             [
               aso.Canal ? `<:canales:1340014379080618035> <#${aso.Canal}>` : '<:canales:1340014379080618035> Sin canal',
-              aso.Renovacion ? `🗓️ ${renovacionTimestamp ? `<t:${renovacionTimestamp}:R>` : '🗓️ No definido'}` : '🗓️ No definido',
+              aso.Renovacion ? `🗓️ <t:${renovacionTimestamp}:R>` : '🗓️ No definido',
               aso.Representante ? `<:representante:1340014390342193252> <@${aso.Representante}>` : '<:representante:1340014390342193252> Sin representante'
             ].join('\n')
           )
@@ -183,7 +160,7 @@ function createFallbackEmbed(staffId, staffDisplayName, sortedChannels, staffAso
 
 /**
  * Organiza canales por staff dentro de las mismas categorías
- * Distribuye equitativamente entre las categorías disponibles
+ * Distribuje equitativamente entre las categorías disponibles
  *
  * @param {Client} client
  */
@@ -258,66 +235,48 @@ async function organizaPorStaff(client) {
     }
 
     // 4) Procesar canales asignados (distribuir entre categorías)
-    // Antes: se ordenaban por ID; ahora resolvemos displayNames (cache-first) y ordenamos por nombre
-    const staffEntries = Array.from(gruposAsignados.entries()); // [ [staffId, channels[]], ... ]
-
-    const staffWithNames = await Promise.all(
-      staffEntries.map(async ([staffId, channelsArr]) => {
-        let display = String(staffId);
-        try {
-          const cached = guild.members.cache.get(staffId);
-          if (cached) display = cached.displayName || cached.user.username;
-          else {
-            const fetched = await guild.members.fetch(staffId).catch(() => null);
-            if (fetched) display = fetched.displayName || fetched.user.username;
-          }
-        } catch (e) {
-          // keep fallback
-        }
-        return { staffId, staffDisplayName: display, channelsArr };
-      })
-    );
-
-    // Orden humano
-    staffWithNames.sort((a, b) => a.staffDisplayName.localeCompare(b.staffDisplayName, undefined, { sensitivity: 'base', numeric: true }));
-
-    for (let i = 0; i < staffWithNames.length; i++) {
-      const { staffId, staffDisplayName, channelsArr } = staffWithNames[i];
-
-      const channelsOfStaff = Array.from(channelsArr || []);
-      if (channelsOfStaff.length === 0) {
-        // no hay nada que hacer (protección extra)
-        continue;
+    const sortedStaffKeys = Array.from(gruposAsignados.keys()).sort((a, b) => {
+      if (/^\d+$/.test(a) && /^\d+$/.test(b)) {
+        return a.localeCompare(b, undefined, { numeric: true });
       }
+      return String(a).localeCompare(String(b));
+    });
 
+    for (let i = 0; i < sortedStaffKeys.length; i++) {
+      const staffId = sortedStaffKeys[i];
+      const channelsOfStaff = gruposAsignados.get(staffId);
+      
       // Distribuir equitativamente entre las categorías
       const targetCategoryId = TARGET_CATEGORY_IDS[i % TARGET_CATEGORY_IDS.length];
-      let currentPosition = categoryPositions.get(targetCategoryId) ?? 0;
+      let currentPosition = categoryPositions.get(targetCategoryId);
       
-      console.log(`👤 Procesando staff ${staffId} (${staffDisplayName}) con ${channelsOfStaff.length} canales en categoría ${targetCategoryId}`);
+      console.log(`👤 Procesando staff ${staffId} con ${channelsOfStaff.length} canales en categoría ${targetCategoryId}`);
 
-      // Generar staffChannelName de forma segura: si slug queda vacío, usar staffId
-      const slugPart = slugifyName(staffDisplayName) || staffId;
-      const staffChannelName = `${STAFF_CHANNEL_PREFIX}${slugPart}`.slice(0, 100);
-
-      // 5) Buscar si hay un canal de staff existente con ese nombre en *cualquiera* de las categorías target
-      let staffChannel = guild.channels.cache.find(ch =>
-        ch.name === staffChannelName &&
-        ch.type === 0 &&
-        TARGET_CATEGORY_IDS.includes(ch.parentId)
-      );
-
-      // Si existe pero está en otra categoría target, lo moveremos a la target actual
-      if (staffChannel && staffChannel.parentId !== targetCategoryId) {
-        try {
-          await staffChannel.setParent(targetCategoryId, { lockPermissions: false });
-          await sleep(DELAY_BETWEEN_REQUESTS_MS);
-        } catch (e) {
-          console.warn(`⚠️ No se pudo mover canal existente ${staffChannel.name} a ${targetCategoryId}:`, e.message);
-        }
+      // Obtener información del miembro del staff
+      let staffMember = null;
+      let staffDisplayName = staffId;
+      try {
+        staffMember = await guild.members.fetch(staffId);
+        staffDisplayName = staffMember.displayName || staffMember.user.username;
+      } catch (e) {
+        console.warn(`No se pudo obtener info del staff ${staffId}:`, e.message);
       }
 
-      // Si no existe, lo creamos en la categoría target
+      // Crear nombre del canal de staff (usar nombre tal cual del servidor)
+      const staffChannelName = `${STAFF_CHANNEL_PREFIX}${staffDisplayName}`
+        .toLowerCase()
+        .replace(/\s+/g, '-')           // espacios → guiones
+        .replace(/-+/g, '-')            // múltiples guiones → uno solo
+        .replace(/^-|-$/g, '')          // quitar guiones al inicio/final
+        .slice(0, 100);                 // límite de Discord
+
+      // 5) Crear o encontrar canal de staff en la categoría correspondiente
+      let staffChannel = guild.channels.cache.find(ch => 
+        ch.name === staffChannelName && 
+        ch.type === 0 &&
+        ch.parentId === targetCategoryId
+      );
+
       if (!staffChannel) {
         console.log(`🔨 Creando canal de staff: ${staffChannelName} en categoría ${targetCategoryId}`);
         try {
@@ -340,7 +299,7 @@ async function organizaPorStaff(client) {
           continue;
         }
       } else {
-        // Actualizar canal existente (topic, permisos y posición)
+        // Actualizar canal existente
         try {
           await staffChannel.setTopic(`📋 Canales asignados a ${staffDisplayName}`);
           await sleep(DELAY_BETWEEN_REQUESTS_MS);
@@ -358,13 +317,13 @@ async function organizaPorStaff(client) {
         }
       }
 
-      // 6) Ordenar canales del staff alfabéticamente ANTES de moverlos (orden humano)
-      const sortedChannels = channelsOfStaff.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base', numeric: true }));
+      // 6) Ordenar canales del staff alfabéticamente ANTES de moverlos
+      const sortedChannels = channelsOfStaff.sort((a, b) => a.name.localeCompare(b.name));
       
       console.log(`📝 Orden alfabético para ${staffDisplayName}:`, sortedChannels.map(ch => ch.name));
       
       let movedCount = 0;
-      let currentPos = categoryPositions.get(targetCategoryId) ?? 0;
+      let currentPos = categoryPositions.get(targetCategoryId);
       
       // Mover canales en el orden alfabético correcto
       for (let j = 0; j < sortedChannels.length; j++) {
@@ -474,7 +433,7 @@ async function organizaPorStaff(client) {
     // 8) Procesar canales sin asignar AL FINAL de la última categoría
     if (canalesSinAsignar.length > 0) {
       const lastCategoryId = TARGET_CATEGORY_IDS[TARGET_CATEGORY_IDS.length - 1];
-      let finalPosition = categoryPositions.get(lastCategoryId) ?? 0;
+      let finalPosition = categoryPositions.get(lastCategoryId);
       
       console.log(`❓ Procesando ${canalesSinAsignar.length} canales sin asignar en última categoría: ${lastCategoryId}`);
 
@@ -524,7 +483,7 @@ async function organizaPorStaff(client) {
       }
 
       // Ordenar canales sin asignar alfabéticamente y posicionarlos al final
-      const sortedUnassigned = canalesSinAsignar.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base', numeric: true }));
+      const sortedUnassigned = canalesSinAsignar.sort((a, b) => a.name.localeCompare(b.name));
       console.log(`📝 Orden alfabético sin asignar:`, sortedUnassigned.map(ch => ch.name));
       
       let movedUnassignedCount = 0;
@@ -557,7 +516,7 @@ async function organizaPorStaff(client) {
           // Crear asociaciones dummy para canales sin asignar
           const unassignedAsociaciones = sortedUnassigned.map(ch => ({
             Canal: ch.id,
-            Asignado: 'SinAsignar',
+            Asignado: null,
             Renovacion: null,
             Representante: null
           }));
