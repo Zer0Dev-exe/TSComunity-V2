@@ -75,7 +75,7 @@ module.exports = {
             await tareasAsociaciones.create({ channelId: message.channel.id, userId: asignado, expirationDate: expirationDate })
 
             doc.UltimaRenovacion = new Date()
-            doc
+            await doc.save()
         } catch (err) {
             console.error("❌ Error al enviar el mensaje embed:", err);
         }
