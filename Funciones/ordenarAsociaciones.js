@@ -83,7 +83,6 @@ function createContainerForStaff(asociaciones, staffId, staffDisplayName, sorted
         .addTextDisplayComponents(
           new TextDisplayBuilder().setContent(
             [
-              `**${i + 1}. ${channel.name}**`,
               aso.Canal ? `<:canales:1340014379080618035> <#${aso.Canal}>` : '<:canales:1340014379080618035> Sin canal',
               aso.Renovacion ? `🗓️ ${aso.Renovacion} días` : '🗓️ No definido',
               aso.Representante ? `<:representante:1340014390342193252> <@${aso.Representante}>` : '<:representante:1340014390342193252> Sin representante'
@@ -96,7 +95,7 @@ function createContainerForStaff(asociaciones, staffId, staffDisplayName, sorted
         .addSeparatorComponents(new SeparatorBuilder())
         .addTextDisplayComponents(
           new TextDisplayBuilder().setContent(
-            `**${i + 1}.** ${aso.Canal ? `<:canales:1340014379080618035> <#${aso.Canal}>` : '<:canales:1340014379080618035> Sin canal'} — \`${channel.name}\``
+            `${aso.Canal ? `<:canales:1340014379080618035> <#${aso.Canal}>` : '<:canales:1340014379080618035> Sin canal'}`
           )
         );
     }
@@ -264,7 +263,6 @@ async function organizaPorStaff(client) {
       const staffChannelName = `${STAFF_CHANNEL_PREFIX}${staffDisplayName}`
         .toLowerCase()
         .replace(/\s+/g, '-')           // espacios → guiones
-        .replace(/[^a-z0-9\-_]/g, '')   // solo letras, números, guiones y guiones bajos
         .replace(/-+/g, '-')            // múltiples guiones → uno solo
         .replace(/^-|-$/g, '')          // quitar guiones al inicio/final
         .slice(0, 100);                 // límite de Discord
