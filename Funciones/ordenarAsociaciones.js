@@ -78,13 +78,14 @@ function createContainerForStaff(asociaciones, staffId, staffDisplayName, sorted
     
     if (!isUnassigned) {
       // Para staff asignado - mostrar toda la info
+             const renovacionTimestamp = Math.floor(aso.UltimaRenovacion.getTime() / 1000);
       container
         .addSeparatorComponents(new SeparatorBuilder())
         .addTextDisplayComponents(
           new TextDisplayBuilder().setContent(
             [
               aso.Canal ? `<:canales:1340014379080618035> <#${aso.Canal}>` : '<:canales:1340014379080618035> Sin canal',
-              aso.Renovacion ? `🗓️ ${aso.Renovacion} días` : '🗓️ No definido',
+              aso.Renovacion ? `🗓️ <t:${renovacionTimestamp}:R>` : '🗓️ No definido',
               aso.Representante ? `<:representante:1340014390342193252> <@${aso.Representante}>` : '<:representante:1340014390342193252> Sin representante'
             ].join('\n')
           )
@@ -123,8 +124,10 @@ function createStaffOnlyPermissions(guild) {
       id: roleId,
       allow: [
         PermissionsBitField.Flags.ViewChannel,
-        PermissionsBitField.Flags.SendMessages,
         PermissionsBitField.Flags.ReadMessageHistory
+      ],
+      deny: [
+        PermissionsBitField.Flags.SendMessages,
       ]
     });
   });

@@ -1,4 +1,3 @@
-// actualizarListaAsociaciones.js
 const {
   ActionRowBuilder,
   ContainerBuilder,
@@ -57,13 +56,15 @@ module.exports = async function actualizarListaAsociaciones(client) {
       for (const aso of asociation) {
         // Construimos el bloque según si está asignado o no
         if (asignado !== 'SinAsignar') {
+          const renovacionTimestamp = aso.UltimaRenovacion ? Math.floor(new Date(aso.UltimaRenovacion).getTime() / 1000) : null;
+
           container
             .addSeparatorComponents(new SeparatorBuilder())
             .addTextDisplayComponents(
               new TextDisplayBuilder().setContent(
                 [
                   aso.Canal ? `<:canales:1340014379080618035> <#${aso.Canal}>` : '<:canales:1340014379080618035> Sin canal',
-                  aso.Renovacion ? `🗓️ ${aso.Renovacion} días` : 'No definido',
+                  aso.Renovacion ? `🗓️ <t:${renovacionTimestamp}:R>` : 'No definido',
                   aso.Representante ? `<:representante:1340014390342193252> <@${aso.Representante}>` : '<:representante:1340014390342193252> Sin representante'
                 ].join('\n')
               )
@@ -140,6 +141,8 @@ module.exports = async function actualizarListaAsociaciones(client) {
     const channel = await client.channels.fetch(TARGET_CHANNEL_ID);
     if (!channel || !channel.isTextBased()) throw new Error('Canal no encontrado o no es de texto.');
 
+    const guild = channel.guild; // necesario para resolver miembros
+
     // Recuperamos los últimos mensajes del canal del bot
     const fetchedMessages = await channel.messages.fetch({ limit: 100 });
     const sortedMessages = Array.from(fetchedMessages.values()).sort(
@@ -180,6 +183,9 @@ module.exports = async function actualizarListaAsociaciones(client) {
     // Canales en categorías que NO están registrados
     const canalesNoRegistrados = canalesEnCategorias.filter(c => !canalesRegistrados.has(c.id));
 
+    // -------------------------
+    // Agrupar y ordenar
+    // -------------------------
     // Agrupamos por Asignado (o 'SinAsignar')
     const agrupado = asociations.reduce((acc, aso) => {
       const key = aso.Asignado || 'SinAsignar';
@@ -191,18 +197,67 @@ module.exports = async function actualizarListaAsociaciones(client) {
     // Aseguramos que exista SinAsignar
     if (!agrupado['SinAsignar']) agrupado['SinAsignar'] = [];
 
-    // Construimos expectedAsociations como array de arrays (sin 'SinAsignar' al final)
+    // Helper para obtener el nombre del canal desde un objeto aso (si existe en cache)
+    const channelNameFromAso = (aso) => {
+      try {
+        const ch = client.channels.cache.get(String(aso.Canal));
+        return ch ? ch.name : '';
+      } catch {
+        return '';
+      }
+    };
+
+    // 1) Ordenar internamente cada grupo por nombre de canal (alfabético)
+    for (const key of Object.keys(agrupado)) {
+      agrupado[key].sort((a, b) => {
+        const nameA = channelNameFromAso(a);
+        const nameB = channelNameFromAso(b);
+        return nameA.localeCompare(nameB, undefined, { sensitivity: 'base', numeric: true });
+      });
+    }
+
+    // 2) Ordenar las claves (staffs) alfabéticamente por displayName (excluyendo 'SinAsignar')
+    const staffEntries = Object.entries(agrupado).filter(([key]) => key !== 'SinAsignar');
+
+    // Resolvemos displayNames de forma cache-first (menos peticiones) y luego ordenamos
+    const staffWithNames = await Promise.all(
+      staffEntries.map(async ([key, arr]) => {
+        let nameFallback = String(key);
+        try {
+          // intentamos cache primero
+          const cached = guild.members.cache.get(key);
+          if (cached) {
+            nameFallback = cached.displayName || cached.user.username;
+          } else {
+            const member = await guild.members.fetch(key).catch(() => null);
+            if (member) nameFallback = member.displayName || member.user.username;
+          }
+        } catch (e) {
+          /* ignore, mantenemos fallback */
+        }
+        return { key, name: nameFallback, arr };
+      })
+    );
+
+    staffWithNames.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base', numeric: true }));
+
+    // Construimos expectedAsociations: staffs ordenados + SinAsignar al final
     const expectedAsociations = [
-      ...Object.entries(agrupado)
-        .filter(([key]) => key !== 'SinAsignar')
-        .map(([, value]) => [...value]), // clonamos array por seguridad
-      [...agrupado['SinAsignar']] // siempre al final
+      ...staffWithNames.map(s => [...agrupado[s.key]]),
+      [...agrupado['SinAsignar']]
     ];
 
-    // Añadimos canales no registrados a la última agrupación (SinAsignar)
+    // 3) Añadimos canales no registrados a la última agrupación (SinAsignar)
     for (const canal of canalesNoRegistrados.values()) {
       expectedAsociations[expectedAsociations.length - 1].push({ Canal: canal.id, Asignado: 'SinAsignar' });
     }
+
+    // Re-ordenamos la agrupación SinAsignar por nombre de canal una vez añadidos los no registrados
+    expectedAsociations[expectedAsociations.length - 1].sort((a, b) => {
+      const nameA = channelNameFromAso(a) || client.channels.cache.get(String(a.Canal))?.name || '';
+      const nameB = channelNameFromAso(b) || client.channels.cache.get(String(b.Canal))?.name || '';
+      return nameA.localeCompare(nameB, undefined, { sensitivity: 'base', numeric: true });
+    });
 
     // Esperamos 1 mensaje resumen + N divisiones
     const expectedMessages = 1 + expectedAsociations.length;
