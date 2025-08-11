@@ -1,362 +1,546 @@
-require('dotenv').config()
 const {
-  Client,
-  GatewayIntentBits,
-  Partials,
-  Collection,
   ActionRowBuilder,
-  TextInputBuilder,
-  TextInputStyle,
-  ModalBuilder,
+  ContainerBuilder,
+  TextDisplayBuilder,
+  MediaComponentBuilder,
+  ThumbnailBuilder,
+  SectionBuilder,
+  SeparatorBuilder,
+  MessageFlags,
   EmbedBuilder,
-  ButtonBuilder,
-  ButtonStyle,
-  Events,
-  ChannelType,
-  AttachmentBuilder
-} = require("discord.js");
+  PermissionsBitField
+} = require('discord.js');
 
-const Canvas = require('canvas');
-const axios = require('axios');
-const path = require('path');
-const { exec } = require('node:child_process');
+const Asociacion = require('../Esquemas/asociacionesSchema');
 
-const { loadEvents } = require("./Handlers/cargarEventos");
-const { loadCommands } = require("./Handlers/cargarComandos");
-const { loadPrefix } = require('./Handlers/cargarPrefix');
-const process = require('node:process');
-const token = process.env.TOKEN;
+// CONFIG — reemplaza estos IDs por los de tu servidor
+const GUILD_ID = '1093864130030612521';
+const TARGET_CATEGORY_IDS = ['1217154240175407196', '1267736691083317300'];
+const STAFF_ROLE_IDS = ['1107331844866846770', '1107329826982989906', '1202685031219200040', '1363927756617941154'];
 
-process.on('unhandledRejection', async (reason, promise) => {
-  console.log('Unhandled Rejection error at:', promise, 'reason', reason);
-});
+// ajustes por defecto - MÁS CONSERVADORES PARA EVITAR RATE LIMITS
+const STAFF_CHANNEL_PREFIX = '﹏︿';
+const STAFF_CHANNEL_SUFFIX = '︿﹏'; // 🎨 Sufijo decorativo al final
+const DELAY_BETWEEN_REQUESTS_MS = 2000;
+const DELAY_BETWEEN_CREATES_MS = 3000;
+const DELAY_BETWEEN_MOVES_MS = 2500;
+const LIMIT_FETCH_MESSAGES = 20;
 
-process.on('uncaughtException', (err) => {
-  console.log('Uncaught Exception', err);
-});
+// MUTEX para evitar ejecuciones simultáneas
+let organizationInProgress = false;
 
-process.on('uncaughtExceptionMonitor', (err, origin) => {
-  console.log('Uncaught Exception Monitor', err, origin);
-});
+/**
+ * Sleep util
+ * @param {number} ms
+ */
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
 
-const client = new Client({
-  intents: [
-    GatewayIntentBits.Guilds,
-    GatewayIntentBits.GuildMessages,
-    GatewayIntentBits.MessageContent, // Si necesitas leer el contenido del mensaje
-    GatewayIntentBits.GuildMembers, // Si necesitas acceder a miembros
-  ],
-  partials: [
-    Partials.Channel, // Si usas canales parciales (DMs, etc.)
-  ],
-  allowedMentions: {
-    parse: ['users', 'roles', 'everyone'],
-    repliedUser: false
+/**
+ * Crea un container para mostrar las asociaciones de un staff
+ */
+function createContainerForStaff(asociaciones, staffId, staffDisplayName, sortedChannels) {
+  const isUnassigned = staffId === 'unassigned' || staffId === 'SinAsignar';
+  
+  const container = new ContainerBuilder()
+    .setAccentColor(isUnassigned ? 0xffcc00 : 0x00b0f4)
+    .addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(
+        isUnassigned
+          ? `### 📋 Sin asignar — ${asociaciones.length}`
+          : `### 📌 <@${staffId}> — ${asociaciones.length}`
+      )
+    );
+
+  if (!asociaciones || asociaciones.length === 0) {
+    container
+      .addSeparatorComponents(new SeparatorBuilder())
+      .addTextDisplayComponents(
+        new TextDisplayBuilder().setContent(
+          isUnassigned
+            ? 'No hay asociaciones sin asignar.'
+            : 'El usuario no tiene asociaciones.'
+        )
+      );
+    return container;
   }
-});
 
-client.commands = new Collection();
-client.prefixs = new Collection();
-client.aliases = new Collection();
+  const asoByChannel = new Map(asociaciones.map(a => [String(a.Canal), a]));
+  
+  for (let i = 0; i < sortedChannels.length; i++) {
+    const channel = sortedChannels[i];
+    const aso = asoByChannel.get(channel.id);
+    
+    if (!aso) continue;
+    
+    if (!isUnassigned) {
+      const renovacionTimestamp = aso.UltimaRenovacion
+        ? Math.floor(
+            (new Date(aso.UltimaRenovacion).getTime() + aso.Renovacion * 24 * 60 * 60 * 1000) / 1000
+          )
+        : null;
 
-client.login(token).then(async () => {
-  loadEvents(client);
-  loadCommands(client);
-  loadPrefix(client);
-});
+      container
+        .addSeparatorComponents(new SeparatorBuilder())
+        .addTextDisplayComponents(
+          new TextDisplayBuilder().setContent(
+            [
+              aso.Canal ? `<:canales:1340014379080618035> <#${aso.Canal}>` : '<:canales:1340014379080618035> Sin canal',
+              aso.Renovacion ? `🗓️ <t:${renovacionTimestamp}:R>` : '🗓️ No definido',
+              aso.Representante ? `<:representante:1340014390342193252> <@${aso.Representante}>` : '<:representante:1340014390342193252> Sin representante'
+            ].join('\n')
+          )
+        );
+    } else {
+      container
+        .addSeparatorComponents(new SeparatorBuilder())
+        .addTextDisplayComponents(
+          new TextDisplayBuilder().setContent(
+            `${aso.Canal ? `<:canales:1340014379080618035> <#${aso.Canal}>` : '<:canales:1340014379080618035> Sin canal'}`
+          )
+        );
+    }
+  }
 
-module.exports = client;
+  return container;
+}
 
-const BRAWL_STARS_API_KEY = process.env.BS_APIKEY
-async function fetchPlayerStats(playerTag) {
+/**
+ * Crea permisos para que solo el staff pueda ver el canal
+ */
+function createStaffOnlyPermissions(guild) {
+  const overwrites = [
+    {
+      id: guild.roles.everyone.id,
+      deny: [PermissionsBitField.Flags.ViewChannel]
+    }
+  ];
+
+  STAFF_ROLE_IDS.forEach(roleId => {
+    overwrites.push({
+      id: roleId,
+      allow: [
+        PermissionsBitField.Flags.ViewChannel,
+        PermissionsBitField.Flags.ReadMessageHistory
+      ],
+      deny: [
+        PermissionsBitField.Flags.SendMessages,
+      ]
+    });
+  });
+
+  return overwrites;
+}
+
+/**
+ * Organiza un grupo de canales (staff + sus canales asignados) en una posición específica
+ * CORREGIDA para evitar conflictos de posición y asegurar orden correcto
+ */
+async function organizeStaffGroup(guild, staffInfo, channelsOfStaff, targetCategoryId, startPosition, associationByChannel) {
+  const { staffId, staffDisplayName } = staffInfo;
+  
+  console.log(`👤 [${staffDisplayName}] Iniciando organización en categoría ${targetCategoryId}, posición ${startPosition}`);
+  console.log(`   Canales a procesar: [${channelsOfStaff.map(ch => ch.name).join(', ')}]`);
+  
+  // 1) Crear nombre del canal de staff con prefix + suffix
+  const baseStaffName = staffDisplayName
+    .toLowerCase()
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '');
+  
+  
+  const staffChannelName = `${STAFF_CHANNEL_PREFIX}${baseStaffName}${STAFF_CHANNEL_SUFFIX}`
+    .slice(0, 100); // Límite de Discord
+
+  // 2) Buscar canal de staff existente (solo por prefix)
+  let staffChannel = guild.channels.cache.find(ch => 
+    ch.name.startsWith(`${STAFF_CHANNEL_PREFIX}${baseStaffName}`) && // ← Solo busca por prefix + nombre base
+    ch.type === 0 &&
+    ch.parentId === targetCategoryId
+  );
+
+  if (!staffChannel) {
+    console.log(`🔨 [${staffDisplayName}] Creando canal de staff: ${staffChannelName}`);
     try {
-        const response = await axios.get(`https://api.brawlstars.com/v1/players/${encodeURIComponent(playerTag)}`, {
-            headers: {
-                'Authorization': `Bearer ${BRAWL_STARS_API_KEY}`
-            }
+      staffChannel = await guild.channels.create({
+        name: staffChannelName,
+        type: 0,
+        parent: targetCategoryId,
+        topic: `📋 Canales asignados a ${staffDisplayName}`,
+        reason: 'Canal de organización por staff',
+        permissionOverwrites: createStaffOnlyPermissions(guild)
+      });
+      
+      await sleep(DELAY_BETWEEN_CREATES_MS);
+      console.log(`✅ [${staffDisplayName}] Canal staff creado: ${staffChannel.id}`);
+    } catch (e) {
+      console.error(`❌ [${staffDisplayName}] Error creando canal de staff:`, e.message);
+      return null;
+    }
+  } else {
+    console.log(`📍 [${staffDisplayName}] Canal staff existente encontrado: ${staffChannel.id}`);
+  }
+
+  // 3) Ordenar canales alfabéticamente (MEJORADO)
+  const sortedChannels = channelsOfStaff.sort((a, b) => {
+    // Remover emojis y caracteres especiales para ordenar
+    const cleanA = a.name.replace(/[^\w\s-]/g, '').trim().toLowerCase() || a.name.toLowerCase();
+    const cleanB = b.name.replace(/[^\w\s-]/g, '').trim().toLowerCase() || b.name.toLowerCase();
+    return cleanA.localeCompare(cleanB, 'es', { sensitivity: 'base', numeric: true });
+  });
+
+  console.log(`📝 [${staffDisplayName}] Orden alfabético determinado:`, sortedChannels.map(ch => `${ch.name}(${ch.id})`));
+
+  // 4) PRIMERO: Mover todos los canales a la categoría correcta SIN posicionamiento
+  console.log(`📦 [${staffDisplayName}] Moviendo ${sortedChannels.length} canales a categoría ${targetCategoryId}`);
+  
+  for (let i = 0; i < sortedChannels.length; i++) {
+    const channel = sortedChannels[i];
+    
+    try {
+      // Solo mover a la categoría si no está en la correcta
+      if (channel.parentId !== targetCategoryId) {
+        console.log(`   📦 Moviendo ${channel.name} desde categoría ${channel.parentId} → ${targetCategoryId}`);
+        await channel.setParent(targetCategoryId, {
+          reason: `Organizando canales de ${staffDisplayName}`
         });
-        return response.data;
-    } catch (error) {
-        console.error('Error al obtener los datos del jugador:', error);
-        throw error;
-    }
-}
-
-// Función para crear la imagen de las estadísticas
-async function createStatsImage(playerData) {
-    const width = 800;
-    const height = 400;
-    const canvas = Canvas.createCanvas(width, height);
-    const context = canvas.getContext('2d');
-
-    // Cargar fondo
-    context.fillStyle = '#1E1E1E';
-    context.fillRect(0, 0, width, height);
-
-    // Posición y tamaño del ícono de jugador
-    const iconSize = 50;
-    const iconX = 50;
-    const iconY = 40;
-
-    // Obtener y cargar el ícono del jugador desde el CDN
-    if (playerData.icon && playerData.icon.id) {
-        const iconURL = `https://cdn.brawlify.com/profile-icons/regular/${playerData.icon.id}.png`; // Usamos el CDN para obtener la imagen
-        try {
-            const response = await axios.get(iconURL, { responseType: 'arraybuffer' });
-            const buffer = Buffer.from(response.data, 'binary');
-            const playerIcon = await Canvas.loadImage(buffer);
-            context.drawImage(playerIcon, iconX, iconY, iconSize, iconSize);
-        } catch (error) {
-            console.error('Error al obtener el ícono del jugador:', error);
-        }
-    }
-
-    // Texto del nombre del jugador con el ícono al lado
-    context.font = 'bold 30px sans-serif';
-    context.fillStyle = '#FFFFFF';
-    context.fillText(`Estadísticas de ${playerData.name}`, iconX + iconSize + 20, iconY + 35);
-
-    // Agregar estadísticas del jugador
-    context.font = '20px sans-serif';
-    context.fillText(`Trofeos: ${playerData.trophies}`, 50, 150);
-    context.fillText(`Nivel de experiencia: ${playerData.expLevel}`, 50, 200);
-    context.fillText(`Victorias 3v3: ${playerData['3vs3Victories']}`, 50, 250);
-    context.fillText(`Victorias en Solo: ${playerData.soloVictories}`, 50, 300);
-    context.fillText(`Victorias en Duo: ${playerData.duoVictories}`, 50, 350);
-
-    return canvas.toBuffer();
-}
-
-client.on('messageCreate', async message => {
-    if (message.content.startsWith('>>stats')) {
-        const args = message.content.split(' ');
-        const playerTag = args[1];
-
-        if (!playerTag) {
-            return message.reply('Por favor, proporciona un tag de jugador. Ejemplo: `!stats #PLAYER_TAG`');
-        }
-
-        try {
-            const playerData = await fetchPlayerStats(playerTag);
-            const imageBuffer = await createStatsImage(playerData);
-
-            // Enviamos la imagen usando AttachmentBuilder
-            const attachment = new AttachmentBuilder(imageBuffer, { name: 'stats.png' });
-            message.channel.send({ files: [attachment] });
-        } catch (error) {
-            console.error(error);
-            message.reply('Hubo un error al obtener las estadísticas del jugador.');
-        }
-    }
-})
-
-const actualizarClubes = require('./Funciones/actualizarClubes.js');
-setInterval(() => actualizarClubes(client), 10000);
-
-const Schema = require('./Esquemas/clubsSchema.js')
-setInterval(async () => {
-    const token = process.env.BS_APIKEY
-    const data = await Schema.find()
-    const guild = client.guilds.cache.get('1093864130030612521')
-    const channel = guild.channels.cache.get('1335991815026905159')
-    const timeStampt = await channel.messages.fetch('1335992875753930825')
-    const message = await channel.messages.fetch('1335992876856774697')
-
-    const now = new Date();
-    const formattedDate = now.toLocaleString('es-ES', { 
-        timeZone: 'Europe/Madrid',
-        year: 'numeric', 
-        month: '2-digit', 
-        day: '2-digit', 
-        hour: '2-digit', 
-        minute: '2-digit', 
-        second: '2-digit', 
-        hour12: false 
-    })
-    const members = `+${Math.floor(guild.memberCount / 100) * 100}`
-    const clubs = data.length
-    const clubsDetails = []
-
-    for (const doc of data) {
-    try {
-        const clubTag = doc.ClubTag
-        const response = await axios.get(`https://api.brawlstars.com/v1/clubs/%23${clubTag}`, {
-            headers: {
-            Authorization: `Bearer ${token}`,
-            Accept: "application/json",
-            },
-        })
-        const countries = require('./json/countries.json')
-        const countri = doc.Region ? doc.Region : 'España'
-        const countriCode = countries[countri].codigo
-        const countriEmoji = countries[countri].emoji
-        const responseRankings = await axios.get(`https://api.brawlstars.com/v1/rankings/${countriCode}/clubs`, {
-            headers: {
-            Authorization: `Bearer ${token}`,
-            Accept: "application/json",
-            },
-        })
-        const club = response.data
-        const name = club.name
-        const trophies = `${club.trophies.toLocaleString('es').padEnd(10)}🏆`
-        const requiredTrophies = club.requiredTrophies < 1000 ? `+ ${club.requiredTrophies} 🏆` : `+ ${club.requiredTrophies / 1000}k 🏆`
-        // const members = club.members.length < 10 ? `0${club.members.length}/30 👤` : `${club.members.length}/30 👤`
-
-        const rankings = responseRankings.data
-        const rankingClubs = rankings.items
-        const findClubRanking = rankingClubs.find((c) => c.tag === `#${clubTag}`)
-        const clubRanking = findClubRanking ? `Rank #${findClubRanking.rank.toString().padEnd(4)}${countriEmoji}` : ''
-
-        clubsDetails.push({
-            'value': `${name.padEnd(17)}${trophies.padEnd(17)}${requiredTrophies.padEnd(17)}${clubRanking}`,
-            'trophies': club.trophies
-        })
-    } catch (error) {
-        console.error(`Error al obtener datos para el club con tag ${doc.ClubTag}:`, error)
-    }
-    }
-timeStampt.edit(`
-# Plantilla de Promoción de Clubes
-> Esta plantilla, pensada para promocionar los clubes de la comunidad en canales cómo <#1211751809534660608> de otros servidores es editada automaticamente con información del servidor y los clubes de la comunidad cada 2 minutos.
-    
-## Cómo y quién puede promocionar
-> Cualquier usuario con acceso a este canal podra utilizar la plantilla.
-> 
-> **Pasos a seguir:**
-> - **1. Copia la plantilla en tu portapapeles.**
-> *Asegurate de hacerlo cada vez que quieras promocionar, para que la plantilla incluya información actualizada.*
-> - **2. Únete a un servidor y ve a su canal pensado para promocionar clubes.**
-> *En este servidor el canal seria <#1211751809534660608>.*
-> - **3. Pega la plantilla en el canal.**
-> *Asegurate de que en los anteriores 2 mensajes nadie haya publicado la plantilla.*
-    
-## Servidores donde se puede promocionar
-> [GuilleVGX - Brawl Stars](https://discord.gg/77sQHhmZkm)
-> [GoDeik TEAM](https://discord.gg/h2mSWgcMag)
-> [Templo de los ricochets (iKaoss community)](https://discord.gg/6VhNHVMgcr)
-> [Rol & Role coaching](https://discord.gg/b7eZh27aDH)
-> [Brawl Stars Fénix](https://discord.gg/T2QCXxXX8a)
-> [ELPIPEKAS - BRAWL STARS](https://discord.gg/pPpdwrMuBk)
-> [Pizza BS](https://discord.gg/jcmeX4bS9g)
-> [Cats World BS](https://discord.gg/n6qqa5CyN7)
-> [Team Turtle](https://discord.gg/jg9Yet8pNW)
-    
-*Plantilla actualizada cada 2 min, última actualización a las \`${formattedDate}\`.*
-    ** **
-`)
-const clubsValues = clubsDetails
-.sort((a, b) => b.trophies - a.trophies)
-.map(item => item.value)
-.join('\n')
-
-message.edit(`
-# \`T\` \`S\`   \`C\` \`O\` \`M\` \`U\` \`N\` \`I\` \`T\` \`Y\`
-** **
-**__Somos una amplia cadena de clubes que cuenta cuenta con clubes tanto en el top Español como en el Global __**
-   
-### 📙 QUE OFRECEMOS
-> - \`${clubs}\` clubes de Brawl Stars
-> - Comunidad de Discord con \`${members}\` miembros
-> - Staff experimentado en la creación de clubes
-
-### 🔎 QUE BUSCAMOS
-> - Miembros activos para nuestros clubes
-> - Personas interesadas en la creación de clubes
-
-### 🛡️ NUESTROS CLUBES
-\`\`\`${clubsValues}\`\`\`
-
-### 📨 ¡INTERESADOS AL MD!
-`)
-}, 60000)
-
-const actualizarListaAsociaciones = require('./Funciones/actualizarAsociaciones.js')
-setInterval(async () => await actualizarListaAsociaciones(client), 100000);
-
-const ordenarAsociaciones = require('./Funciones/ordenarAsociaciones.js')
-setInterval(async () => await ordenarAsociaciones(client), 1000 * 60 * 15);
-
-client.on('interactionCreate', async interaction => {
-  if (interaction.isAutocomplete()) {
-   const command = client.commands.get(interaction.commandName);
-    if (!command || !command.autocomplete) return;
-    try {
-      await command.autocomplete(interaction);
-    } catch (error) {
-      console.error('❌ Error en autocompletado:', error);
+        await sleep(DELAY_BETWEEN_MOVES_MS);
+      } else {
+        console.log(`   ✓ ${channel.name} ya está en la categoría correcta`);
+      }
+    } catch (e) {
+      console.error(`❌ [${staffDisplayName}] Error moviendo ${channel.name} a categoría:`, e.message);
+      continue; // Continuar con el siguiente
     }
   }
-});
 
-
-// CANALES PARA BORRAR MENSAJES BORrAR EL DE HALLOWEEN
-const canales = ['1112754769472270449']
-
-async function borrarMensajes() {
-    for (const channelId of canales) {
-        try {
-            const servidor = await client.guilds.fetch('1093864130030612521');
-            const channel = await servidor.channels.fetch(channelId);
-            if (!channel || channel.type !== ChannelType.GuildText) {
-                console.warn(`El canal con ID ${channelId} no es un canal de texto válido o no se encontró.`);
-                continue;
-            }
-
-            setInterval(async () => {
-                try {
-                    const fetched = await channel.messages.fetch({ limit: 100 });
-                    const messagesToDelete = fetched.filter(message => !message.pinned);
-                    
-                    for (const message of messagesToDelete.values()) {
-                        await message.delete().catch(err => console.error(`Error al borrar el mensaje con ID ${message.id}:`, err));
-                    }
-                } catch (error) {
-                    console.error(`Error al borrar mensajes del canal ${channelId}:`, error);
-                }
-            }, 5000); // Ejecuta cada 5 segundos
-        } catch (error) {
-            console.error(`Error al acceder al canal ${channelId}:`, error);
-        }
-    }
-}
-borrarMensajes()
-
-
-const tareasAsociaciones = require('./Esquemas/tareasAsociaciones.js'); // Asegúrate de usar la ruta correcta
-
-// Verificar tareas pendientes cada 10 minutos
-setInterval(async () => {
+  // 5) SEGUNDO: Posicionar el canal de staff en la posición inicial
   try {
-    // Obtener todas las tareas desde la base de datos
-    const tasks = await tareasAsociaciones.find({});
-    const now = Date.now(); // Hora actual en milisegundos
+    console.log(`📍 [${staffDisplayName}] Posicionando canal staff en posición ${startPosition}`);
+    await staffChannel.setPosition(startPosition, {
+      reason: `Organizando por staff: ${staffDisplayName}`
+    });
+    await sleep(DELAY_BETWEEN_REQUESTS_MS);
+  } catch (e) {
+    console.error(`❌ [${staffDisplayName}] Error posicionando canal staff:`, e.message);
+  }
 
-    for (const task of tasks) {
-      console.log(task)
-      const expirationTime = new Date(task.expirationDate).getTime();
+  // 6) TERCERO: Posicionar cada canal en orden secuencial
+  let currentPosition = startPosition + 1;
+  let successfulMoves = 0;
 
-      if (expirationTime <= now) {
-        // Si la tarea ya expiró, enviar el mensaje y eliminarla
+  console.log(`📍 [${staffDisplayName}] Posicionando canales desde posición ${currentPosition}`);
+
+  for (let i = 0; i < sortedChannels.length; i++) {
+    const channel = sortedChannels[i];
+    
+    try {
+      console.log(`   📍 Posicionando ${channel.name} en posición ${currentPosition}`);
+      
+      await channel.setPosition(currentPosition, {
+        reason: `Organizando canales de ${staffDisplayName} - orden alfabético`
+      });
+      
+      successfulMoves++;
+      currentPosition++;
+      await sleep(DELAY_BETWEEN_MOVES_MS);
+      
+    } catch (e) {
+      console.error(`❌ [${staffDisplayName}] Error posicionando ${channel.name}:`, e.message);
+      // IMPORTANTE: Incrementar posición incluso si falla para mantener consistencia
+      currentPosition++;
+    }
+  }
+
+  console.log(`✅ [${staffDisplayName}] Posicionamiento completado: ${successfulMoves}/${sortedChannels.length} canales movidos exitosamente`);
+
+  // 7) Actualizar mensaje en canal de staff
+  try {
+    const staffAsociaciones = [];
+    for (const channel of sortedChannels) {
+      const aso = associationByChannel.get(channel.id);
+      if (aso) {
+        staffAsociaciones.push(aso);
+      }
+    }
+    
+    const container = createContainerForStaff(staffAsociaciones, staffId, staffDisplayName, sortedChannels);
+    const messagePayload = { 
+      components: [container], 
+      flags: MessageFlags.IsComponentsV2 
+    };
+
+    const fetched = await staffChannel.messages.fetch({ limit: LIMIT_FETCH_MESSAGES }).catch(() => null);
+    let botMsg = null;
+    if (fetched) botMsg = fetched.find(m => m.author.id === guild.client.user.id);
+
+    if (botMsg) {
+      await botMsg.edit(messagePayload);
+    } else {
+      await staffChannel.send(messagePayload);
+    }
+    
+    await sleep(DELAY_BETWEEN_REQUESTS_MS);
+    console.log(`📝 [${staffDisplayName}] Mensaje actualizado con ${staffAsociaciones.length} asociaciones`);
+
+  } catch (err) {
+    console.error(`❌ [${staffDisplayName}] Error actualizando mensaje:`, err.message);
+  }
+
+  return {
+    staffId,
+    staffDisplayName,
+    staffChannelId: staffChannel.id,
+    staffChannelName,
+    assignedChannelsCount: channelsOfStaff.length,
+    movedChannelsCount: successfulMoves,
+    targetCategory: targetCategoryId,
+    category: staffId === 'unassigned' ? 'unassigned' : 'assigned',
+    finalPosition: currentPosition // La siguiente posición libre
+  };
+}
+
+/**
+ * Organiza canales por staff dentro de las mismas categorías
+ * CORREGIDA para mejor distribución y debugging
+ */
+async function organizaPorStaff(client) {
+  if (organizationInProgress) {
+    console.log('⏳ Organización ya en progreso, saltando ejecución...');
+    return [];
+  }
+  
+  organizationInProgress = true;
+  const startTime = Date.now();
+  console.log('🔒 === INICIANDO ORGANIZACIÓN POR STAFF ===');
+
+  try {
+    const guild = await client.guilds.fetch(GUILD_ID);
+    if (!guild) throw new Error('Guild no encontrado');
+
+    const me = guild.members.me || (await guild.members.fetch(client.user.id));
+    if (!me.permissions.has('ManageChannels')) {
+      console.warn('⚠️ El bot NO tiene permisos ManageChannels');
+      return [];
+    }
+
+    // 1) Obtener todos los canales válidos
+    const sourceChannels = guild.channels.cache.filter(ch => 
+      ch.isTextBased() && 
+      ch.type === 0 && 
+      TARGET_CATEGORY_IDS.includes(ch.parentId) &&
+      !ch.name.startsWith(STAFF_CHANNEL_PREFIX)
+    );
+
+    console.log(`📋 Canales encontrados: ${sourceChannels.size} en categorías [${TARGET_CATEGORY_IDS.join(', ')}]`);
+    
+    if (sourceChannels.size === 0) {
+      console.log('❌ No hay canales para organizar');
+      return [];
+    }
+
+    // 2) Obtener asociaciones de BD
+    const canalIds = Array.from(sourceChannels.keys());
+    const asociacionesDB = await Asociacion.find({ Canal: { $in: canalIds } });
+    const associationByChannel = new Map(asociacionesDB.map(a => [String(a.Canal), a]));
+
+    console.log(`🗄️ Asociaciones en BD: ${asociacionesDB.length}/${sourceChannels.size} canales`);
+
+    // 3) Agrupar por staff
+    const gruposAsignados = new Map();
+    const canalesSinAsignar = [];
+
+    for (const [, ch] of sourceChannels) {
+      const aso = associationByChannel.get(ch.id);
+      
+      if (aso && aso.Asignado) {
+        const staffId = String(aso.Asignado);
+        if (!gruposAsignados.has(staffId)) gruposAsignados.set(staffId, []);
+        gruposAsignados.get(staffId).push(ch);
+      } else {
+        canalesSinAsignar.push(ch);
+      }
+    }
+
+    console.log(`📊 Distribución: ${gruposAsignados.size} staff con canales, ${canalesSinAsignar.length} sin asignar`);
+
+    // 4) Preparar información de staff ordenada
+    const staffWithInfo = [];
+    
+    for (const [staffId, channels] of gruposAsignados.entries()) {
+      let staffDisplayName = staffId;
+      
+      try {
+        const staffMember = await guild.members.fetch(staffId);
+        staffDisplayName = staffMember.displayName || staffMember.user.username;
+      } catch (e) {
+        console.warn(`⚠️ No se pudo obtener info del staff ${staffId}: ${e.message}`);
+      }
+      
+      staffWithInfo.push({
+        staffId,
+        staffDisplayName,
+        channels
+      });
+    }
+    
+    // Ordenar alfabéticamente
+    staffWithInfo.sort((a, b) => a.staffDisplayName.localeCompare(b.staffDisplayName, 'es', { sensitivity: 'base' }));
+    
+    console.log('👥 Staff ordenado:', staffWithInfo.map(s => `${s.staffDisplayName}(${s.channels.length})`));
+
+    const results = [];
+
+    // 5) NUEVO SISTEMA: Procesar todos los staff en orden alfabético secuencial
+    console.log('\n🗂️ === PROCESANDO STAFF EN ORDEN ALFABÉTICO GLOBAL ===');
+    
+    // Calcular distribución equilibrada
+    const staffPerCategory = Math.ceil(staffWithInfo.length / TARGET_CATEGORY_IDS.length);
+    console.log(`   📊 Distribución objetivo: ~${staffPerCategory} staff por categoría`);
+    
+    // Contadores para cada categoría
+    const categoryCounters = TARGET_CATEGORY_IDS.map(() => ({ position: 0, staffCount: 0 }));
+    let currentCategoryIndex = 0;
+    
+    // Procesar cada staff en orden alfabético
+    for (let staffIndex = 0; staffIndex < staffWithInfo.length; staffIndex++) {
+      const staffInfo = staffWithInfo[staffIndex];
+      
+      // Determinar categoría actual
+      const targetCategoryId = TARGET_CATEGORY_IDS[currentCategoryIndex];
+      const categoryCounter = categoryCounters[currentCategoryIndex];
+      
+      console.log(`\n👤 [${staffIndex + 1}/${staffWithInfo.length}] Procesando ${staffInfo.staffDisplayName}`);
+      console.log(`   📌 Asignado a Categoría ${currentCategoryIndex + 1} (${targetCategoryId})`);
+      console.log(`   📍 Posición inicial en categoría: ${categoryCounter.position}`);
+      
+      const result = await organizeStaffGroup(
+        guild, 
+        staffInfo, 
+        staffInfo.channels, 
+        targetCategoryId, 
+        categoryCounter.position, 
+        associationByChannel
+      );
+      
+      if (result) {
+        results.push(result);
+        categoryCounter.position = result.finalPosition;
+        categoryCounter.staffCount++;
+        console.log(`✅ ${staffInfo.staffDisplayName} completado en Categoría ${currentCategoryIndex + 1}`);
+        console.log(`   📍 Próxima posición libre en esta categoría: ${categoryCounter.position}`);
+      } else {
+        console.error(`❌ Falló el procesamiento de ${staffInfo.staffDisplayName}`);
+      }
+      
+      // Cambiar a la siguiente categoría si hemos alcanzado el límite
+      if (categoryCounter.staffCount >= staffPerCategory && currentCategoryIndex < TARGET_CATEGORY_IDS.length - 1) {
+        console.log(`📦 Categoría ${currentCategoryIndex + 1} completada con ${categoryCounter.staffCount} staff`);
+        currentCategoryIndex++;
+      }
+    }
+    
+    // Mostrar distribución final
+    console.log('\n📊 === DISTRIBUCIÓN FINAL POR CATEGORÍAS ===');
+    TARGET_CATEGORY_IDS.forEach((catId, index) => {
+      const counter = categoryCounters[index];
+      console.log(`   Categoría ${index + 1} (${catId}): ${counter.staffCount} staff, posición final: ${counter.position}`);
+    });
+
+    // 6) Procesar canales sin asignar en la última categoría
+    if (canalesSinAsignar.length > 0) {
+      const lastCategoryId = TARGET_CATEGORY_IDS[TARGET_CATEGORY_IDS.length - 1];
+      console.log(`\n❓ === PROCESANDO SIN ASIGNAR (${canalesSinAsignar.length} canales) ===`);
+      console.log(`   Categoría destino: ${lastCategoryId}`);
+      
+      // Encontrar la última posición usada en la última categoría
+      const lastCategoryIndex = TARGET_CATEGORY_IDS.length - 1;
+      const lastPosition = categoryCounters[lastCategoryIndex].position;
+      
+      console.log(`   Posición inicial para sin asignar: ${lastPosition}`);
+      
+      const unassignedResult = await organizeStaffGroup(
+        guild,
+        { staffId: 'unassigned', staffDisplayName: 'Sin Asignar' },
+        canalesSinAsignar,
+        lastCategoryId,
+        lastPosition,
+        associationByChannel
+      );
+      
+      if (unassignedResult) {
+        results.push(unassignedResult);
+      }
+    }
+
+    // 7) Limpiar canales obsoletos
+    await cleanupObsoleteStaffChannels(guild, results);
+
+    // 8) Resumen final
+    const duration = ((Date.now() - startTime) / 1000).toFixed(2);
+    console.log(`\n✅ === ORGANIZACIÓN COMPLETADA EN ${duration}s ===`);
+    console.log(`   📊 Resultados:`);
+    console.log(`      • Staff procesados: ${results.filter(r => r.category === 'assigned').length}`);
+    console.log(`      • Canales sin asignar: ${results.filter(r => r.category === 'unassigned').length}`);
+    console.log(`      • Total canales organizados: ${results.reduce((sum, r) => sum + r.assignedChannelsCount, 0)}`);
+    console.log(`      • Total movimientos exitosos: ${results.reduce((sum, r) => sum + r.movedChannelsCount, 0)}`);
+    
+    console.log(`   🗂️ Distribución por categorías:`);
+    TARGET_CATEGORY_IDS.forEach((catId, index) => {
+      const groupsInCat = results.filter(r => r.targetCategory === catId);
+      const channelsInCat = groupsInCat.reduce((sum, r) => sum + r.assignedChannelsCount, 0);
+      console.log(`      - Categoría ${index + 1} (${catId}): ${groupsInCat.length} grupos, ${channelsInCat} canales`);
+    });
+
+    return results;
+    
+  } catch (error) {
+    console.error('❌ ERROR CRÍTICO en organizaPorStaff:', error);
+    throw error;
+  } finally {
+    organizationInProgress = false;
+    console.log('🔓 Mutex liberado');
+  }
+}
+
+/**
+ * Limpia canales de staff obsoletos
+ */
+async function cleanupObsoleteStaffChannels(guild, currentResults) {
+  try {
+    console.log('\n🧹 === LIMPIANDO CANALES OBSOLETOS ===');
+    
+    const activeStaffChannelIds = new Set(currentResults.map(r => r.staffChannelId).filter(Boolean));
+    
+    const allStaffChannels = guild.channels.cache.filter(ch => 
+      ch.type === 0 && 
+      ch.name.startsWith(STAFF_CHANNEL_PREFIX) &&
+      TARGET_CATEGORY_IDS.includes(ch.parentId)
+    );
+
+    console.log(`   Canales staff encontrados: ${allStaffChannels.size}`);
+    console.log(`   Canales staff activos: ${activeStaffChannelIds.size}`);
+
+    let removedCount = 0;
+    for (const [, staffChannel] of allStaffChannels) {
+      if (!activeStaffChannelIds.has(staffChannel.id)) {
         try {
-          const encargado = await client.users.fetch(task.userId); // Obtener el usuario encargado
-          if (encargado) {
-            // Enviar mensaje al encargado
-            await encargado.send(
-              `🔔 ¡<@${task.userId}>! Ya es hora de renovar tu asociación asignada, <#${task.channelId}>.`
-            );
-          }
-          // Eliminar la tarea después de completarse
-          await tareasAsociaciones.deleteOne({ _id: task._id });
-        } catch (err) {
-          console.error(`❌ Error al enviar mensaje al encargado para el canal ${task.channelId}:`, err);
+          console.log(`🗑️ Eliminando canal obsoleto: ${staffChannel.name}`);
+          await staffChannel.delete('Canal de staff sin canales asignados');
+          removedCount++;
+          await sleep(DELAY_BETWEEN_REQUESTS_MS);
+        } catch (e) {
+          console.warn(`⚠️ No se pudo eliminar ${staffChannel.name}:`, e.message);
         }
       }
     }
+    
+    console.log(`✅ Limpieza completada: ${removedCount} canales eliminados`);
   } catch (error) {
-    console.error('❌ Error al recuperar las tareas pendientes:', error);
+    console.error('❌ Error en cleanup:', error.message);
   }
-}, 600000); // Ejecutar cada 10 minutos
+}
 
-const tagRoleManager = require("./Funciones/tagRole");
-
-tagRoleManager(client, "1380229272316154027");
+module.exports = organizaPorStaff;
