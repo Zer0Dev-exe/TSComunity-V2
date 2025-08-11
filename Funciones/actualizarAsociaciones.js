@@ -232,10 +232,7 @@ const renovacionTimestamp = aso.UltimaRenovacion
     // Canales en categorías que NO están registrados
     const canalesNoRegistrados = canalesEnCategorias.filter(c => !canalesRegistrados.has(c.id));
 
-    console.log(`📊 Estadísticas:
-    - Canales en categorías (sin staff): ${canalesEnCategorias.size}
-    - Asociaciones registradas: ${asociations.length}
-    - Canales no registrados: ${canalesNoRegistrados.length}`);
+
 
     // -------------------------
     // Agrupar y ordenar (MEJORADO)
@@ -251,8 +248,6 @@ const renovacionTimestamp = aso.UltimaRenovacion
     // Aseguramos que exista SinAsignar
     if (!agrupado['SinAsignar']) agrupado['SinAsignar'] = [];
 
-    // 1) Ordenar internamente cada grupo por nombre de canal (alfabético con nueva lógica)
-    console.log('🔤 Ordenando canales dentro de cada grupo...');
     
     for (const [key, group] of Object.entries(agrupado)) {
       const beforeSort = group.map(aso => getChannelName(aso));
@@ -264,14 +259,11 @@ const renovacionTimestamp = aso.UltimaRenovacion
       });
       
       const afterSort = group.map(aso => getChannelName(aso));
-      console.log(`  📝 ${key === 'SinAsignar' ? 'Sin Asignar' : `Staff ${key}`}: ${afterSort.length} canales`);
-      console.log(`     Orden: ${afterSort.slice(0, 3).join(', ')}${afterSort.length > 3 ? '...' : ''}`);
     }
 
     // 2) Ordenar las claves (staffs) alfabéticamente por displayName (excluyendo 'SinAsignar')
     const staffEntries = Object.entries(agrupado).filter(([key]) => key !== 'SinAsignar');
 
-    console.log('👥 Resolviendo nombres de staff para ordenar...');
     
     // Resolvemos displayNames de forma cache-first (menos peticiones) y luego ordenamos
     const staffWithNames = await Promise.all(
@@ -296,7 +288,6 @@ const renovacionTimestamp = aso.UltimaRenovacion
     // Ordenar staff alfabéticamente (mismo método que organizaPorStaff)
     staffWithNames.sort((a, b) => a.name.localeCompare(b.name, 'es', { sensitivity: 'base' }));
 
-    console.log(`📋 Orden final de staff: ${staffWithNames.map(s => s.name).join(', ')}`);
 
     // Construimos expectedAsociations: staffs ordenados + SinAsignar al final
     const expectedAsociations = [
@@ -304,8 +295,6 @@ const renovacionTimestamp = aso.UltimaRenovacion
       [...agrupado['SinAsignar']]
     ];
 
-    // 3) Añadimos canales no registrados a la última agrupación (SinAsignar)
-    console.log('📋 Procesando canales no registrados...');
     
     for (const canal of canalesNoRegistrados.values()) {
       expectedAsociations[expectedAsociations.length - 1].push({ 
@@ -324,14 +313,7 @@ const renovacionTimestamp = aso.UltimaRenovacion
       return compareChannelNames(nameA, nameB);
     });
     
-    const afterSinAsignar = sinAsignarGroup.map(aso => getChannelName(aso));
-    console.log(`📝 Sin Asignar final: ${afterSinAsignar.length} canales`);
-    console.log(`   Orden: ${afterSinAsignar.slice(0, 5).join(', ')}${afterSinAsignar.length > 5 ? '...' : ''}`);
-
-    console.log(`📝 Resumen del ordenamiento:
-    - Staff groups: ${staffWithNames.length}
-    - Sin asignar items: ${expectedAsociations[expectedAsociations.length - 1].length}
-    - Total de grupos: ${expectedAsociations.length}`);
+    const afterSinAsignar = sinAsignarGroup.map(aso => getChannelName(aso))
 
     // Esperamos 1 mensaje resumen + N divisiones
     const expectedMessages = 1 + expectedAsociations.length;
@@ -339,7 +321,6 @@ const renovacionTimestamp = aso.UltimaRenovacion
 
     // Si no existe mensaje resumen -> limpiamos y creamos todo desde cero
     if (!summaryMsg) {
-      console.log('🔄 No hay mensaje resumen, creando todo desde cero...');
       // borramos todos los mensajes del bot que había
       await Promise.all(botMessages.map(m => m.delete().catch(() => {})));
 
@@ -360,13 +341,11 @@ const renovacionTimestamp = aso.UltimaRenovacion
         });
       }
 
-      console.log('✅ Mensajes creados desde cero');
       return;
     }
 
     // Si hay menos mensajes de bot de los esperados -> reiniciamos todo (para mantener orden)
     if (botMessages.length < expectedMessages) {
-      console.log('🔄 Menos mensajes de los esperados, reiniciando...');
       // borrar y recrear
       await Promise.all(botMessages.map(m => m.delete().catch(() => {})));
 
@@ -386,12 +365,8 @@ const renovacionTimestamp = aso.UltimaRenovacion
         });
       }
 
-      console.log('✅ Mensajes recreados');
       return;
     }
-
-    // Si llegamos aquí -> actualizamos los mensajes existentes:
-    console.log('🔄 Actualizando mensajes existentes...');
     
     // 1) editamos el summaryMsg con datos nuevos
     const newSummaryEmbed = createSummaryEmbed(asociations, sinAsignarCount);
@@ -415,7 +390,6 @@ const renovacionTimestamp = aso.UltimaRenovacion
           flags: MessageFlags.IsComponentsV2,
           allowedMentions: { users: [] }
         }).catch(async (err) => {
-          console.error('Error editando msg V2, intentando recrear:', err);
           // si falla la edición, borramos y re-enviamos
           try {
             await msg.delete().catch(() => {});
@@ -437,8 +411,6 @@ const renovacionTimestamp = aso.UltimaRenovacion
         }).catch(e => console.error('Error enviando nuevo mensaje V2:', e));
       }
     }
-
-    console.log('✅ Actualización completada');
 
   } catch (error) {
     console.error(`❌ Error en el proceso de actualización: ${error}`);
