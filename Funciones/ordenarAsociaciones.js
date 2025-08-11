@@ -19,7 +19,8 @@ const TARGET_CATEGORY_IDS = ['1217154240175407196', '1267736691083317300'];
 const STAFF_ROLE_IDS = ['1107331844866846770', '1107329826982989906', '1202685031219200040', '1363927756617941154'];
 
 // ajustes por defecto - MÁS CONSERVADORES PARA EVITAR RATE LIMITS
-const STAFF_CHANNEL_PREFIX = 'staff-';
+const STAFF_CHANNEL_PREFIX = '﹏︿';
+const STAFF_CHANNEL_SUFFIX = '︿﹏'; // 🎨 Sufijo decorativo al final
 const DELAY_BETWEEN_REQUESTS_MS = 2000;
 const DELAY_BETWEEN_CREATES_MS = 3000;
 const DELAY_BETWEEN_MOVES_MS = 2500;
@@ -142,17 +143,20 @@ async function organizeStaffGroup(guild, staffInfo, channelsOfStaff, targetCateg
   console.log(`👤 [${staffDisplayName}] Iniciando organización en categoría ${targetCategoryId}, posición ${startPosition}`);
   console.log(`   Canales a procesar: [${channelsOfStaff.map(ch => ch.name).join(', ')}]`);
   
-  // 1) Crear nombre del canal de staff
-  const staffChannelName = `${STAFF_CHANNEL_PREFIX}${staffDisplayName}`
+  // 1) Crear nombre del canal de staff con prefix + suffix
+  const baseStaffName = staffDisplayName
     .toLowerCase()
     .replace(/\s+/g, '-')
     .replace(/-+/g, '-')
-    .replace(/^-|-$/g, '')
-    .slice(0, 100);
+    .replace(/^-|-$/g, '');
+  
+  
+  const staffChannelName = `${STAFF_CHANNEL_PREFIX}${baseStaffName}${STAFF_CHANNEL_SUFFIX}`
+    .slice(0, 100); // Límite de Discord
 
-  // 2) Crear o encontrar canal de staff
+  // 2) Buscar canal de staff existente (solo por prefix)
   let staffChannel = guild.channels.cache.find(ch => 
-    ch.name === staffChannelName && 
+    ch.name.startsWith(`${STAFF_CHANNEL_PREFIX}${baseStaffName}`) && // ← Solo busca por prefix + nombre base
     ch.type === 0 &&
     ch.parentId === targetCategoryId
   );
@@ -389,67 +393,71 @@ async function organizaPorStaff(client) {
 
     const results = [];
 
-    // 5) DISTRIBUCIÓN MEJORADA: Asignar staff a categorías de forma equitativa
-    console.log('\n🗂️ === DISTRIBUYENDO STAFF POR CATEGORÍAS ===');
+    // 5) NUEVO SISTEMA: Procesar todos los staff en orden alfabético secuencial
+    console.log('\n🗂️ === PROCESANDO STAFF EN ORDEN ALFABÉTICO GLOBAL ===');
     
-    const categoryAssignments = new Map();
-    TARGET_CATEGORY_IDS.forEach(catId => categoryAssignments.set(catId, []));
+    // Calcular distribución equilibrada
+    const staffPerCategory = Math.ceil(staffWithInfo.length / TARGET_CATEGORY_IDS.length);
+    console.log(`   📊 Distribución objetivo: ~${staffPerCategory} staff por categoría`);
     
-    // Distribución round-robin para balancear carga
-    staffWithInfo.forEach((staff, index) => {
-      const targetCategoryIndex = index % TARGET_CATEGORY_IDS.length;
-      const targetCategoryId = TARGET_CATEGORY_IDS[targetCategoryIndex];
-      categoryAssignments.get(targetCategoryId).push(staff);
+    // Contadores para cada categoría
+    const categoryCounters = TARGET_CATEGORY_IDS.map(() => ({ position: 0, staffCount: 0 }));
+    let currentCategoryIndex = 0;
+    
+    // Procesar cada staff en orden alfabético
+    for (let staffIndex = 0; staffIndex < staffWithInfo.length; staffIndex++) {
+      const staffInfo = staffWithInfo[staffIndex];
       
-      console.log(`   📌 ${staff.staffDisplayName} → Categoría ${targetCategoryIndex + 1} (${targetCategoryId})`);
-    });
-
-    // 6) Procesar cada categoría
-    for (let catIndex = 0; catIndex < TARGET_CATEGORY_IDS.length; catIndex++) {
-      const categoryId = TARGET_CATEGORY_IDS[catIndex];
-      const staffInCategory = categoryAssignments.get(categoryId);
+      // Determinar categoría actual
+      const targetCategoryId = TARGET_CATEGORY_IDS[currentCategoryIndex];
+      const categoryCounter = categoryCounters[currentCategoryIndex];
       
-      console.log(`\n🗂️ === PROCESANDO CATEGORÍA ${catIndex + 1}/${TARGET_CATEGORY_IDS.length}: ${categoryId} ===`);
-      console.log(`   Staff asignados: [${staffInCategory.map(s => s.staffDisplayName).join(', ')}]`);
+      console.log(`\n👤 [${staffIndex + 1}/${staffWithInfo.length}] Procesando ${staffInfo.staffDisplayName}`);
+      console.log(`   📌 Asignado a Categoría ${currentCategoryIndex + 1} (${targetCategoryId})`);
+      console.log(`   📍 Posición inicial en categoría: ${categoryCounter.position}`);
       
-      let currentPosition = 0;
+      const result = await organizeStaffGroup(
+        guild, 
+        staffInfo, 
+        staffInfo.channels, 
+        targetCategoryId, 
+        categoryCounter.position, 
+        associationByChannel
+      );
       
-      // Procesar cada staff en esta categoría
-      for (const staffInfo of staffInCategory) {
-        console.log(`\n👤 Procesando ${staffInfo.staffDisplayName} (${staffInfo.channels.length} canales)`);
-        
-        const result = await organizeStaffGroup(
-          guild, 
-          staffInfo, 
-          staffInfo.channels, 
-          categoryId, 
-          currentPosition, 
-          associationByChannel
-        );
-        
-        if (result) {
-          results.push(result);
-          currentPosition = result.finalPosition;
-          console.log(`✅ ${staffInfo.staffDisplayName} completado. Próxima posición libre: ${currentPosition}`);
-        } else {
-          console.error(`❌ Falló el procesamiento de ${staffInfo.staffDisplayName}`);
-        }
+      if (result) {
+        results.push(result);
+        categoryCounter.position = result.finalPosition;
+        categoryCounter.staffCount++;
+        console.log(`✅ ${staffInfo.staffDisplayName} completado en Categoría ${currentCategoryIndex + 1}`);
+        console.log(`   📍 Próxima posición libre en esta categoría: ${categoryCounter.position}`);
+      } else {
+        console.error(`❌ Falló el procesamiento de ${staffInfo.staffDisplayName}`);
       }
       
-      console.log(`🏁 Categoría ${catIndex + 1} completada con ${staffInCategory.length} grupos de staff`);
+      // Cambiar a la siguiente categoría si hemos alcanzado el límite
+      if (categoryCounter.staffCount >= staffPerCategory && currentCategoryIndex < TARGET_CATEGORY_IDS.length - 1) {
+        console.log(`📦 Categoría ${currentCategoryIndex + 1} completada con ${categoryCounter.staffCount} staff`);
+        currentCategoryIndex++;
+      }
     }
+    
+    // Mostrar distribución final
+    console.log('\n📊 === DISTRIBUCIÓN FINAL POR CATEGORÍAS ===');
+    TARGET_CATEGORY_IDS.forEach((catId, index) => {
+      const counter = categoryCounters[index];
+      console.log(`   Categoría ${index + 1} (${catId}): ${counter.staffCount} staff, posición final: ${counter.position}`);
+    });
 
-    // 7) Procesar canales sin asignar en la última categoría
+    // 6) Procesar canales sin asignar en la última categoría
     if (canalesSinAsignar.length > 0) {
       const lastCategoryId = TARGET_CATEGORY_IDS[TARGET_CATEGORY_IDS.length - 1];
       console.log(`\n❓ === PROCESANDO SIN ASIGNAR (${canalesSinAsignar.length} canales) ===`);
       console.log(`   Categoría destino: ${lastCategoryId}`);
       
-      // Encontrar la última posición usada en esa categoría
-      const lastCategoryResults = results.filter(r => r.targetCategory === lastCategoryId);
-      const lastPosition = lastCategoryResults.length > 0 
-        ? Math.max(...lastCategoryResults.map(r => r.finalPosition || 0))
-        : 0;
+      // Encontrar la última posición usada en la última categoría
+      const lastCategoryIndex = TARGET_CATEGORY_IDS.length - 1;
+      const lastPosition = categoryCounters[lastCategoryIndex].position;
       
       console.log(`   Posición inicial para sin asignar: ${lastPosition}`);
       
@@ -467,10 +475,10 @@ async function organizaPorStaff(client) {
       }
     }
 
-    // 8) Limpiar canales obsoletos
+    // 7) Limpiar canales obsoletos
     await cleanupObsoleteStaffChannels(guild, results);
 
-    // 9) Resumen final
+    // 8) Resumen final
     const duration = ((Date.now() - startTime) / 1000).toFixed(2);
     console.log(`\n✅ === ORGANIZACIÓN COMPLETADA EN ${duration}s ===`);
     console.log(`   📊 Resultados:`);

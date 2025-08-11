@@ -12,7 +12,7 @@ const {
 const Asociacion = require('../Esquemas/asociacionesSchema');
 
 // Constante para el prefijo de canales de staff
-const STAFF_CHANNEL_PREFIX = 'staff-';
+const STAFF_CHANNEL_PREFIX = '﹏︿';
 
 module.exports = async function actualizarListaAsociaciones(client) {
   try {
