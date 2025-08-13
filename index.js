@@ -327,35 +327,47 @@ const tareasAsociaciones = require('./Esquemas/tareasAsociaciones.js'); // Aseg�
 // Verificar tareas pendientes cada 10 minutos
 setInterval(async () => {
   try {
-    // Obtener todas las tareas desde la base de datos
     const tasks = await tareasAsociaciones.find({});
-    const now = Date.now(); // Hora actual en milisegundos
+    const now = Date.now();
 
     for (const task of tasks) {
-      console.log(task)
       const expirationTime = new Date(task.expirationDate).getTime();
-
+      
+      // Solo procesar si ya venció
       if (expirationTime <= now) {
-        // Si la tarea ya expiró, enviar el mensaje y eliminarla
-        try {
-          const encargado = await client.users.fetch(task.userId); // Obtener el usuario encargado
-          if (encargado) {
-            // Enviar mensaje al encargado
-            await encargado.send(
-              `🔔 ¡<@${task.userId}>! Ya es hora de renovar tu asociación asignada, <#${task.channelId}>.`
+        // Fecha del último aviso (si no existe, poner como vencimiento para avisar justo al expirar)
+        const lastNotified = task.lastNotified
+          ? new Date(task.lastNotified).getTime()
+          : expirationTime;
+
+        // Días desde el último aviso
+        const diffDays = Math.floor((now - lastNotified) / (1000 * 60 * 60 * 24));
+
+        if (diffDays >= 2) {
+          try {
+            const encargado = await client.users.fetch(task.userId);
+            if (encargado) {
+              await encargado.send(
+                `🔔 ¡<@${task.userId}>! Ya es hora de renovar tu asociación asignada, <#${task.channelId}>.`
+              );
+            }
+
+            // Actualizar el último aviso
+            await tareasAsociaciones.updateOne(
+              { _id: task._id },
+              { $set: { lastNotified: new Date() } }
             );
+
+          } catch (err) {
+            console.error(`❌ Error enviando mensaje para canal ${task.channelId}:`, err);
           }
-          // Eliminar la tarea después de completarse
-          await tareasAsociaciones.deleteOne({ _id: task._id });
-        } catch (err) {
-          console.error(`❌ Error al enviar mensaje al encargado para el canal ${task.channelId}:`, err);
         }
       }
     }
   } catch (error) {
     console.error('❌ Error al recuperar las tareas pendientes:', error);
   }
-}, 600000); // Ejecutar cada 10 minutos
+}, 600000); // Cada 10 min
 
 const tagRoleManager = require("./Funciones/tagRole");
 
