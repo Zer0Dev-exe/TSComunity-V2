@@ -104,7 +104,6 @@ const renovacionTimestamp = aso.UltimaRenovacion
     )
   : null;
 
-
           container
             .addSeparatorComponents(new SeparatorBuilder())
             .addTextDisplayComponents(
@@ -198,6 +197,12 @@ const renovacionTimestamp = aso.UltimaRenovacion
     // Mensajes V2 -> aquellos con flags V2 (container builders)
     const divisionMsgs = botMessages.filter(msg => isV2(msg)).sort((a, b) => a.createdTimestamp - b.createdTimestamp);
 
+    // LOGGING MEJORADO
+    console.log(`📋 Estado inicial de mensajes:`);
+    console.log(`   - Total mensajes del bot: ${botMessages.length}`);
+    console.log(`   - Mensaje resumen (non-V2): ${summaryMsg ? '✅' : '❌'}`);
+    console.log(`   - Mensajes V2: ${divisionMsgs.length}`);
+
     // Obtenemos canales de las dos categorías (filtramos por parentId y excluimos canales de staff)
     const canalesEnCategorias = client.channels.cache.filter(ch =>
       ch.isTextBased() && 
@@ -246,23 +251,17 @@ const renovacionTimestamp = aso.UltimaRenovacion
     // Aseguramos que exista SinAsignar
     if (!agrupado['SinAsignar']) agrupado['SinAsignar'] = [];
 
-    
     for (const [key, group] of Object.entries(agrupado)) {
-      const beforeSort = group.map(aso => getChannelName(aso));
-      
       group.sort((a, b) => {
         const nameA = getChannelName(a);
         const nameB = getChannelName(b);
         return compareChannelNames(nameA, nameB);
       });
-      
-      const afterSort = group.map(aso => getChannelName(aso));
     }
 
     // 2) Ordenar las claves (staffs) alfabéticamente por displayName (excluyendo 'SinAsignar')
     const staffEntries = Object.entries(agrupado).filter(([key]) => key !== 'SinAsignar');
 
-    
     // Resolvemos displayNames de forma cache-first (menos peticiones) y luego ordenamos
     const staffWithNames = await Promise.all(
       staffEntries.map(async ([key, arr]) => {
@@ -292,7 +291,6 @@ const renovacionTimestamp = aso.UltimaRenovacion
       [...agrupado['SinAsignar']]
     ];
 
-    
     for (const canal of canalesNoRegistrados.values()) {
       expectedAsociations[expectedAsociations.length - 1].push({ 
         Canal: canal.id, 
@@ -302,22 +300,23 @@ const renovacionTimestamp = aso.UltimaRenovacion
 
     // Re-ordenamos la agrupación SinAsignar por nombre de canal una vez añadidos los no registrados
     const sinAsignarGroup = expectedAsociations[expectedAsociations.length - 1];
-    const beforeSinAsignar = sinAsignarGroup.map(aso => getChannelName(aso));
     
     sinAsignarGroup.sort((a, b) => {
       const nameA = getChannelName(a);
       const nameB = getChannelName(b);
       return compareChannelNames(nameA, nameB);
     });
-    
-    const afterSinAsignar = sinAsignarGroup.map(aso => getChannelName(aso))
 
     // Esperamos 1 mensaje resumen + N divisiones
     const expectedMessages = 1 + expectedAsociations.length;
     const sinAsignarCount = expectedAsociations[expectedAsociations.length - 1].length;
 
+    console.log(`🎯 Divisiones esperadas: ${expectedAsociations.length}`);
+    console.log(`📝 Mensajes V2 actuales: ${divisionMsgs.length}`);
+
     // Si no existe mensaje resumen -> limpiamos y creamos todo desde cero
     if (!summaryMsg) {
+      console.log('🔄 No hay mensaje resumen, recreando todo...');
       // borramos todos los mensajes del bot que había
       await Promise.all(botMessages.map(m => m.delete().catch(() => {})));
 
@@ -343,6 +342,7 @@ const renovacionTimestamp = aso.UltimaRenovacion
 
     // Si hay menos mensajes de bot de los esperados -> reiniciamos todo (para mantener orden)
     if (botMessages.length < expectedMessages) {
+      console.log('🔄 Menos mensajes de los esperados, recreando todo...');
       // borrar y recrear
       await Promise.all(botMessages.map(m => m.delete().catch(() => {})));
 
@@ -387,6 +387,7 @@ const renovacionTimestamp = aso.UltimaRenovacion
           flags: MessageFlags.IsComponentsV2,
           allowedMentions: { users: [] }
         }).catch(async (err) => {
+          console.error(`❌ Error editando mensaje V2 ${msg.id}:`, err);
           // si falla la edición, borramos y re-enviamos
           try {
             await msg.delete().catch(() => {});
@@ -401,6 +402,7 @@ const renovacionTimestamp = aso.UltimaRenovacion
         });
       } else {
         // si no existe mensaje V2 para esta división, lo creamos
+        console.log(`📤 Creando nuevo mensaje V2 para división ${i}`);
         await channel.send({
           components: [container],
           flags: MessageFlags.IsComponentsV2,
@@ -409,23 +411,88 @@ const renovacionTimestamp = aso.UltimaRenovacion
       }
     }
 
-    // 🔥 NUEVA LÓGICA: Eliminar mensajes V2 sobrantes
-    // Si había más mensajes V2 que divisiones actuales, eliminamos los sobrantes
+    // 🔥 LÓGICA MEJORADA PARA ELIMINAR MENSAJES SOBRANTES
     if (divisionMsgs.length > expectedAsociations.length) {
       const mensajesSobrantes = divisionMsgs.slice(expectedAsociations.length);
-      console.log(`🗑️ Eliminando ${mensajesSobrantes.length} mensajes V2 sobrantes`);
+      console.log(`🗑️ Hay ${mensajesSobrantes.length} mensajes V2 sobrantes que deben eliminarse`);
+      console.log(`   - IDs de mensajes sobrantes: ${mensajesSobrantes.map(m => m.id).join(', ')}`);
       
-      for (const msgSobrante of mensajesSobrantes) {
+      let eliminadosExitosos = 0;
+      let erroresEliminacion = 0;
+      
+      // Eliminamos en lotes pequeños con delay para evitar rate limit
+      for (let i = 0; i < mensajesSobrantes.length; i++) {
+        const msgSobrante = mensajesSobrantes[i];
+        
         try {
-          await msgSobrante.delete();
-          console.log(`✅ Eliminado mensaje sobrante: ${msgSobrante.id}`);
+          console.log(`🗑️ Intentando eliminar mensaje ${i + 1}/${mensajesSobrantes.length}: ${msgSobrante.id}`);
+          
+          // Verificar que el mensaje aún existe antes de eliminarlo
+          const msgExists = await channel.messages.fetch(msgSobrante.id).catch(() => null);
+          
+          if (msgExists) {
+            await msgSobrante.delete();
+            eliminadosExitosos++;
+            console.log(`✅ Eliminado exitosamente: ${msgSobrante.id}`);
+          } else {
+            console.log(`⚠️ El mensaje ${msgSobrante.id} ya no existe`);
+          }
+          
+          // Pequeño delay para evitar rate limiting
+          if (i < mensajesSobrantes.length - 1) {
+            await new Promise(resolve => setTimeout(resolve, 100));
+          }
+          
         } catch (error) {
-          console.error(`❌ Error eliminando mensaje sobrante ${msgSobrante.id}:`, error);
+          erroresEliminacion++;
+          console.error(`❌ Error eliminando mensaje sobrante ${msgSobrante.id}:`, {
+            message: error.message,
+            code: error.code,
+            httpStatus: error.httpStatus
+          });
+          
+          // Si es un error de permisos o el mensaje ya no existe, continuamos
+          if (error.code === 10008 || error.code === 50013) {
+            console.log(`⚠️ Mensaje ${msgSobrante.id} no se puede eliminar (posiblemente ya eliminado o sin permisos)`);
+          }
         }
       }
+      
+      console.log(`📊 Resultado eliminación: ${eliminadosExitosos} exitosos, ${erroresEliminacion} errores`);
+      
+      // Si hubo errores, intentamos una segunda pasada solo para los que fallaron
+      if (erroresEliminacion > 0) {
+        console.log('🔄 Realizando segunda pasada para mensajes que fallaron...');
+        
+        // Re-fetch para obtener estado actualizado
+        const refetchedMessages = await channel.messages.fetch({ limit: 100 });
+        const refetchedBotMessages = Array.from(refetchedMessages.values())
+          .filter(msg => msg.author.id === client.user.id)
+          .sort((a, b) => a.createdTimestamp - b.createdTimestamp);
+        const refetchedV2Messages = refetchedBotMessages.filter(msg => isV2(msg));
+        
+        if (refetchedV2Messages.length > expectedAsociations.length) {
+          const segundaPasada = refetchedV2Messages.slice(expectedAsociations.length);
+          console.log(`🗑️ Segunda pasada: ${segundaPasada.length} mensajes pendientes`);
+          
+          for (const msg of segundaPasada) {
+            try {
+              await msg.delete();
+              console.log(`✅ Segunda pasada exitosa: ${msg.id}`);
+            } catch (error) {
+              console.error(`❌ Segunda pasada fallida: ${msg.id}`, error.message);
+            }
+          }
+        }
+      }
+    } else {
+      console.log(`✅ No hay mensajes sobrantes que eliminar`);
     }
 
   } catch (error) {
-    console.error(`❌ Error en el proceso de actualización: ${error}`);
+    console.error(`❌ Error en el proceso de actualización:`, {
+      message: error.message,
+      stack: error.stack
+    });
   }
 }

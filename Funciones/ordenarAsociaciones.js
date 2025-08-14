@@ -38,6 +38,87 @@ function sleep(ms) {
 }
 
 /**
+ * Normaliza el nombre de usuario para crear nombres de canal consistentes
+ * @param {string} displayName 
+ * @returns {string}
+ */
+function normalizeStaffName(displayName) {
+  return displayName
+    .toLowerCase()
+    .normalize('NFD') // Descompone acentos
+    .replace(/[\u0300-\u036f]/g, '') // Elimina diacríticos (acentos)
+    .replace(/[^\w\s-]/g, '') // Solo letras, números, espacios y guiones
+    .replace(/\s+/g, '-') // Espacios → guiones
+    .replace(/-+/g, '-') // Múltiples guiones → uno solo
+    .replace(/^-|-$/g, '') // Quita guiones al inicio/final
+    .trim();
+}
+
+/**
+ * Busca un canal de staff existente de forma más robusta
+ * @param {Guild} guild 
+ * @param {string} staffId 
+ * @param {string} staffDisplayName 
+ * @param {string} targetCategoryId 
+ * @returns {Channel|null}
+ */
+function findExistingStaffChannel(guild, staffId, staffDisplayName, targetCategoryId) {
+  const normalizedName = normalizeStaffName(staffDisplayName);
+  
+  // Buscar canales de staff en la categoría objetivo
+  const staffChannelsInCategory = guild.channels.cache.filter(ch => 
+    ch.type === 0 &&
+    ch.parentId === targetCategoryId &&
+    ch.name.startsWith(STAFF_CHANNEL_PREFIX)
+  );
+
+  console.log(`🔍 [${staffDisplayName}] Buscando canal existente para "${normalizedName}"`);
+  console.log(`   Canales de staff en categoría: ${staffChannelsInCategory.size}`);
+
+  // Patrones de búsqueda en orden de prioridad
+  const searchPatterns = [
+    // 1. Nombre completo con sufijo actual
+    `${STAFF_CHANNEL_PREFIX}${normalizedName}${STAFF_CHANNEL_SUFFIX}`,
+    // 2. Nombre con prefix actual (cualquier sufijo)
+    new RegExp(`^${escapeRegex(STAFF_CHANNEL_PREFIX)}${escapeRegex(normalizedName)}`),
+    // 3. Búsqueda por ID de staff en el topic del canal
+    null // Se maneja por separado
+  ];
+
+  // Buscar por patrones de nombre
+  for (const pattern of searchPatterns.slice(0, 2)) {
+    for (const [, channel] of staffChannelsInCategory) {
+      const matches = typeof pattern === 'string' 
+        ? channel.name === pattern
+        : pattern.test(channel.name);
+        
+      if (matches) {
+        console.log(`✅ [${staffDisplayName}] Canal encontrado por patrón: ${channel.name}`);
+        return channel;
+      }
+    }
+  }
+
+  // Búsqueda por topic (como fallback)
+  for (const [, channel] of staffChannelsInCategory) {
+    if (channel.topic && channel.topic.includes(staffDisplayName)) {
+      console.log(`✅ [${staffDisplayName}] Canal encontrado por topic: ${channel.name}`);
+      return channel;
+    }
+  }
+
+  console.log(`❌ [${staffDisplayName}] No se encontró canal existente`);
+  return null;
+}
+
+/**
+ * Escapa caracteres especiales para regex
+ */
+function escapeRegex(string) {
+  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/**
  * Crea un container para mostrar las asociaciones de un staff
  */
 function createContainerForStaff(asociaciones, staffId, staffDisplayName, sortedChannels) {
@@ -135,7 +216,7 @@ function createStaffOnlyPermissions(guild) {
 
 /**
  * Organiza un grupo de canales (staff + sus canales asignados) en una posición específica
- * CORREGIDA para evitar conflictos de posición y asegurar orden correcto
+ * CORREGIDA para encontrar y reutilizar canales de staff existentes correctamente
  */
 async function organizeStaffGroup(guild, staffInfo, channelsOfStaff, targetCategoryId, startPosition, associationByChannel) {
   const { staffId, staffDisplayName } = staffInfo;
@@ -143,32 +224,41 @@ async function organizeStaffGroup(guild, staffInfo, channelsOfStaff, targetCateg
   console.log(`👤 [${staffDisplayName}] Iniciando organización en categoría ${targetCategoryId}, posición ${startPosition}`);
   console.log(`   Canales a procesar: [${channelsOfStaff.map(ch => ch.name).join(', ')}]`);
   
-  // 1) Crear nombre del canal de staff con prefix + suffix
-  const baseStaffName = staffDisplayName
-    .toLowerCase()
-    .replace(/\s+/g, '-')
-    .replace(/-+/g, '-')
-    .replace(/^-|-$/g, '');
-  
-  
-  const staffChannelName = `${STAFF_CHANNEL_PREFIX}${baseStaffName}${STAFF_CHANNEL_SUFFIX}`
+  // 1) Crear nombre normalizado del canal de staff
+  const normalizedStaffName = normalizeStaffName(staffDisplayName);
+  const staffChannelName = `${STAFF_CHANNEL_PREFIX}${normalizedStaffName}${STAFF_CHANNEL_SUFFIX}`
     .slice(0, 100); // Límite de Discord
 
-  // 2) Buscar canal de staff existente (solo por prefix)
-  let staffChannel = guild.channels.cache.find(ch => 
-    ch.name.startsWith(`${STAFF_CHANNEL_PREFIX}${baseStaffName}`) && // ← Solo busca por prefix + nombre base
-    ch.type === 0 &&
-    ch.parentId === targetCategoryId
-  );
+  console.log(`📝 [${staffDisplayName}] Nombre normalizado: "${normalizedStaffName}"`);
+  console.log(`📝 [${staffDisplayName}] Nombre objetivo: "${staffChannelName}"`);
 
-  if (!staffChannel) {
+  // 2) Buscar canal de staff existente usando la función mejorada
+  let staffChannel = findExistingStaffChannel(guild, staffId, staffDisplayName, targetCategoryId);
+
+  if (staffChannel) {
+    // Verificar si necesita renombrar
+    if (staffChannel.name !== staffChannelName) {
+      console.log(`🔧 [${staffDisplayName}] Renombrando canal: ${staffChannel.name} → ${staffChannelName}`);
+      try {
+        await staffChannel.setName(staffChannelName, {
+          reason: `Actualizando nombre del canal de ${staffDisplayName}`
+        });
+        await sleep(DELAY_BETWEEN_REQUESTS_MS);
+      } catch (e) {
+        console.warn(`⚠️ [${staffDisplayName}] Error renombrando canal:`, e.message);
+      }
+    } else {
+      console.log(`✅ [${staffDisplayName}] Canal existente correcto: ${staffChannel.name}`);
+    }
+  } else {
+    // 3) Crear nuevo canal de staff si no existe
     console.log(`🔨 [${staffDisplayName}] Creando canal de staff: ${staffChannelName}`);
     try {
       staffChannel = await guild.channels.create({
         name: staffChannelName,
         type: 0,
         parent: targetCategoryId,
-        topic: `📋 Canales asignados a ${staffDisplayName}`,
+        topic: `📋 Canales asignados a ${staffDisplayName} (ID: ${staffId})`,
         reason: 'Canal de organización por staff',
         permissionOverwrites: createStaffOnlyPermissions(guild)
       });
@@ -179,11 +269,9 @@ async function organizeStaffGroup(guild, staffInfo, channelsOfStaff, targetCateg
       console.error(`❌ [${staffDisplayName}] Error creando canal de staff:`, e.message);
       return null;
     }
-  } else {
-    console.log(`📍 [${staffDisplayName}] Canal staff existente encontrado: ${staffChannel.id}`);
   }
 
-  // 3) Ordenar canales alfabéticamente (MEJORADO)
+  // 4) Ordenar canales alfabéticamente (MEJORADO)
   const sortedChannels = channelsOfStaff.sort((a, b) => {
     // Remover emojis y caracteres especiales para ordenar
     const cleanA = a.name.replace(/[^\w\s-]/g, '').trim().toLowerCase() || a.name.toLowerCase();
@@ -193,7 +281,7 @@ async function organizeStaffGroup(guild, staffInfo, channelsOfStaff, targetCateg
 
   console.log(`📝 [${staffDisplayName}] Orden alfabético determinado:`, sortedChannels.map(ch => `${ch.name}(${ch.id})`));
 
-  // 4) PRIMERO: Mover todos los canales a la categoría correcta SIN posicionamiento
+  // 5) PRIMERO: Mover todos los canales a la categoría correcta SIN posicionamiento
   console.log(`📦 [${staffDisplayName}] Moviendo ${sortedChannels.length} canales a categoría ${targetCategoryId}`);
   
   for (let i = 0; i < sortedChannels.length; i++) {
@@ -216,7 +304,7 @@ async function organizeStaffGroup(guild, staffInfo, channelsOfStaff, targetCateg
     }
   }
 
-  // 5) SEGUNDO: Posicionar el canal de staff en la posición inicial
+  // 6) SEGUNDO: Posicionar el canal de staff en la posición inicial
   try {
     console.log(`📍 [${staffDisplayName}] Posicionando canal staff en posición ${startPosition}`);
     await staffChannel.setPosition(startPosition, {
@@ -227,7 +315,7 @@ async function organizeStaffGroup(guild, staffInfo, channelsOfStaff, targetCateg
     console.error(`❌ [${staffDisplayName}] Error posicionando canal staff:`, e.message);
   }
 
-  // 6) TERCERO: Posicionar cada canal en orden secuencial
+  // 7) TERCERO: Posicionar cada canal en orden secuencial
   let currentPosition = startPosition + 1;
   let successfulMoves = 0;
 
@@ -256,7 +344,7 @@ async function organizeStaffGroup(guild, staffInfo, channelsOfStaff, targetCateg
 
   console.log(`✅ [${staffDisplayName}] Posicionamiento completado: ${successfulMoves}/${sortedChannels.length} canales movidos exitosamente`);
 
-  // 7) Actualizar mensaje en canal de staff
+  // 8) Actualizar mensaje en canal de staff
   try {
     const staffAsociaciones = [];
     for (const channel of sortedChannels) {
