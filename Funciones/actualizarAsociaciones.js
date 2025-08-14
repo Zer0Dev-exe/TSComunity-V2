@@ -232,8 +232,6 @@ const renovacionTimestamp = aso.UltimaRenovacion
     // Canales en categorías que NO están registrados
     const canalesNoRegistrados = canalesEnCategorias.filter(c => !canalesRegistrados.has(c.id));
 
-
-
     // -------------------------
     // Agrupar y ordenar (MEJORADO)
     // -------------------------
@@ -287,7 +285,6 @@ const renovacionTimestamp = aso.UltimaRenovacion
 
     // Ordenar staff alfabéticamente (mismo método que organizaPorStaff)
     staffWithNames.sort((a, b) => a.name.localeCompare(b.name, 'es', { sensitivity: 'base' }));
-
 
     // Construimos expectedAsociations: staffs ordenados + SinAsignar al final
     const expectedAsociations = [
@@ -409,6 +406,22 @@ const renovacionTimestamp = aso.UltimaRenovacion
           flags: MessageFlags.IsComponentsV2,
           allowedMentions: { users: [] }
         }).catch(e => console.error('Error enviando nuevo mensaje V2:', e));
+      }
+    }
+
+    // 🔥 NUEVA LÓGICA: Eliminar mensajes V2 sobrantes
+    // Si había más mensajes V2 que divisiones actuales, eliminamos los sobrantes
+    if (divisionMsgs.length > expectedAsociations.length) {
+      const mensajesSobrantes = divisionMsgs.slice(expectedAsociations.length);
+      console.log(`🗑️ Eliminando ${mensajesSobrantes.length} mensajes V2 sobrantes`);
+      
+      for (const msgSobrante of mensajesSobrantes) {
+        try {
+          await msgSobrante.delete();
+          console.log(`✅ Eliminado mensaje sobrante: ${msgSobrante.id}`);
+        } catch (error) {
+          console.error(`❌ Error eliminando mensaje sobrante ${msgSobrante.id}:`, error);
+        }
       }
     }
 
