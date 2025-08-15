@@ -65,50 +65,11 @@ function normalizeStaffName(displayName) {
 function findExistingStaffChannel(guild, staffId, staffDisplayName, targetCategoryId) {
   const normalizedName = normalizeStaffName(staffDisplayName);
   
-  // Buscar canales de staff en la categoría objetivo
-  const staffChannelsInCategory = guild.channels.cache.filter(ch => 
-    ch.type === 0 &&
-    ch.parentId === targetCategoryId &&
-    ch.name.startsWith(STAFF_CHANNEL_PREFIX)
-  );
-
-  console.log(`🔍 [${staffDisplayName}] Buscando canal existente para "${normalizedName}"`);
-  console.log(`   Canales de staff en categoría: ${staffChannelsInCategory.size}`);
-
-  // Patrones de búsqueda en orden de prioridad
-  const searchPatterns = [
-    // 1. Nombre completo con sufijo actual
-    `${STAFF_CHANNEL_PREFIX}${normalizedName}${STAFF_CHANNEL_SUFFIX}`,
-    // 2. Nombre con prefix actual (cualquier sufijo)
-    new RegExp(`^${escapeRegex(STAFF_CHANNEL_PREFIX)}${escapeRegex(normalizedName)}`),
-    // 3. Búsqueda por ID de staff en el topic del canal
-    null // Se maneja por separado
-  ];
-
-  // Buscar por patrones de nombre
-  for (const pattern of searchPatterns.slice(0, 2)) {
-    for (const [, channel] of staffChannelsInCategory) {
-      const matches = typeof pattern === 'string' 
-        ? channel.name === pattern
-        : pattern.test(channel.name);
-        
-      if (matches) {
-        console.log(`✅ [${staffDisplayName}] Canal encontrado por patrón: ${channel.name}`);
-        return channel;
-      }
-    }
-  }
-
-  // Búsqueda por topic (como fallback)
-  for (const [, channel] of staffChannelsInCategory) {
-    if (channel.topic && channel.topic.includes(staffDisplayName)) {
-      console.log(`✅ [${staffDisplayName}] Canal encontrado por topic: ${channel.name}`);
-      return channel;
-    }
-  }
+  let channel
+  channel = guild.channel.cache.find(c => c.name === `${STAFF_CHANNEL_PREFIX}${normalizedName}${STAFF_CHANNEL_SUFFIX}`)
 
   console.log(`❌ [${staffDisplayName}] No se encontró canal existente`);
-  return null;
+  return channel
 }
 
 /**
