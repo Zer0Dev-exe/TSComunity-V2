@@ -71,6 +71,8 @@ module.exports = async function actualizarListaAsociaciones(client) {
      */
     function createContainerForAsociation(asociation) {
       const asignado = asociation[0]?.Asignado || 'SinAsignar';
+      // ✅ FIX: Definir 'ahora' dentro de la función
+      const ahora = Date.now();
 
       const container = new ContainerBuilder()
         .setAccentColor(asignado === 'SinAsignar' ? 0xffcc00 : 0x00b0f4)
@@ -104,15 +106,32 @@ const renovacionTimestamp = aso.UltimaRenovacion
     )
   : null;
 
+const msRenovacion = (aso.Renovacion || 0) * 24 * 60 * 60 * 1000;
+const renovada = aso.UltimaRenovacion
+  ? (ahora - new Date(aso.UltimaRenovacion).getTime()) < msRenovacion
+  : false;
+
           container
             .addSeparatorComponents(new SeparatorBuilder())
             .addTextDisplayComponents(
               new TextDisplayBuilder().setContent(
-                [
-                  aso.Canal ? `<:canales:1340014379080618035> <#${aso.Canal}>` : '<:canales:1340014379080618035> Sin canal',
-                  renovacionTimestamp ? `🗓️ <t:${renovacionTimestamp}:R>` : '🗓️ No definido',
-                  aso.Representante ? `<:representante:1340014390342193252> <@${aso.Representante}>` : '<:representante:1340014390342193252> Sin representante'
-                ].join('\n')
+            [
+              aso.Canal
+                ? `<:canales:1340014379080618035> <#${aso.Canal}>`
+                : '<:canales:1340014379080618035> Sin canal',
+
+              renovacionTimestamp
+                ? `🗓️ <t:${renovacionTimestamp}:R>`
+                : '🗓️ No definido',
+
+              aso.Representante
+                ? `<:representante:1340014390342193252> <@${aso.Representante}>`
+                : '<:representante:1340014390342193252> Sin representante',
+
+              renovada
+                ? '✅ **Renovada**'
+                : '❌ **No renovada**'
+            ].join('\n')
               )
             );
         } else {
@@ -411,36 +430,43 @@ const renovacionTimestamp = aso.UltimaRenovacion
       }
     }
 
-    // 🔥 LÓGICA MEJORADA PARA ELIMINAR MENSAJES SOBRANTES
+    // ✅ LÓGICA CORREGIDA PARA ELIMINAR MENSAJES SOBRANTES
     if (divisionMsgs.length > expectedAsociations.length) {
-      const mensajesSobrantes = divisionMsgs.slice(expectedAsociations.length);
-      console.log(`🗑️ Hay ${mensajesSobrantes.length} mensajes V2 sobrantes que deben eliminarse`);
+      // ✅ FIX: Ordenar mensajes por timestamp DESCENDENTE para eliminar los más recientes primero
+      const mensajesOrdenados = [...divisionMsgs].sort((a, b) => b.createdTimestamp - a.createdTimestamp);
+      const cantidadAEliminar = divisionMsgs.length - expectedAsociations.length;
+      const mensajesSobrantes = mensajesOrdenados.slice(0, cantidadAEliminar);
+      
+      console.log(`🗑️ ELIMINACIÓN DE MENSAJES SOBRANTES:`);
+      console.log(`   - Mensajes V2 actuales: ${divisionMsgs.length}`);
+      console.log(`   - Divisiones esperadas: ${expectedAsociations.length}`);
+      console.log(`   - Mensajes sobrantes a eliminar: ${mensajesSobrantes.length}`);
       console.log(`   - IDs de mensajes sobrantes: ${mensajesSobrantes.map(m => m.id).join(', ')}`);
       
       let eliminadosExitosos = 0;
       let erroresEliminacion = 0;
       
-      // Eliminamos en lotes pequeños con delay para evitar rate limit
+      // Eliminar uno por uno con mejor manejo de errores
       for (let i = 0; i < mensajesSobrantes.length; i++) {
         const msgSobrante = mensajesSobrantes[i];
         
         try {
-          console.log(`🗑️ Intentando eliminar mensaje ${i + 1}/${mensajesSobrantes.length}: ${msgSobrante.id}`);
+          console.log(`🗑️ Eliminando mensaje sobrante ${i + 1}/${mensajesSobrantes.length}: ${msgSobrante.id}`);
           
-          // Verificar que el mensaje aún existe antes de eliminarlo
-          const msgExists = await channel.messages.fetch(msgSobrante.id).catch(() => null);
+          // ✅ FIX: Re-fetch del mensaje para asegurar que existe
+          const msgActualizado = await channel.messages.fetch(msgSobrante.id).catch(() => null);
           
-          if (msgExists) {
-            await msgSobrante.delete();
+          if (msgActualizado) {
+            await msgActualizado.delete();
             eliminadosExitosos++;
             console.log(`✅ Eliminado exitosamente: ${msgSobrante.id}`);
           } else {
             console.log(`⚠️ El mensaje ${msgSobrante.id} ya no existe`);
           }
           
-          // Pequeño delay para evitar rate limiting
+          // Delay para evitar rate limiting
           if (i < mensajesSobrantes.length - 1) {
-            await new Promise(resolve => setTimeout(resolve, 100));
+            await new Promise(resolve => setTimeout(resolve, 250));
           }
           
         } catch (error) {
@@ -451,38 +477,57 @@ const renovacionTimestamp = aso.UltimaRenovacion
             httpStatus: error.httpStatus
           });
           
-          // Si es un error de permisos o el mensaje ya no existe, continuamos
-          if (error.code === 10008 || error.code === 50013) {
-            console.log(`⚠️ Mensaje ${msgSobrante.id} no se puede eliminar (posiblemente ya eliminado o sin permisos)`);
+          // Si es un error conocido, continuamos
+          if (error.code === 10008) { // Unknown Message
+            console.log(`ℹ️ Mensaje ${msgSobrante.id} ya no existe (normal)`);
+          } else if (error.code === 50013) { // Missing Permissions
+            console.log(`⚠️ Sin permisos para eliminar ${msgSobrante.id}`);
+          } else {
+            console.log(`🔄 Error inesperado con código ${error.code}, continuando...`);
           }
         }
       }
       
       console.log(`📊 Resultado eliminación: ${eliminadosExitosos} exitosos, ${erroresEliminacion} errores`);
       
-      // Si hubo errores, intentamos una segunda pasada solo para los que fallaron
-      if (erroresEliminacion > 0) {
-        console.log('🔄 Realizando segunda pasada para mensajes que fallaron...');
+      // ✅ FIX: Verificación final más robusta
+      if (erroresEliminacion > 0 || eliminadosExitosos < mensajesSobrantes.length) {
+        console.log('🔄 Realizando verificación final...');
         
-        // Re-fetch para obtener estado actualizado
-        const refetchedMessages = await channel.messages.fetch({ limit: 100 });
-        const refetchedBotMessages = Array.from(refetchedMessages.values())
+        // Re-fetch todos los mensajes para verificar el estado actual
+        const verificacionMessages = await channel.messages.fetch({ limit: 100 });
+        const verificacionBotMessages = Array.from(verificacionMessages.values())
           .filter(msg => msg.author.id === client.user.id)
           .sort((a, b) => a.createdTimestamp - b.createdTimestamp);
-        const refetchedV2Messages = refetchedBotMessages.filter(msg => isV2(msg));
+        const verificacionV2Messages = verificacionBotMessages.filter(msg => isV2(msg));
         
-        if (refetchedV2Messages.length > expectedAsociations.length) {
-          const segundaPasada = refetchedV2Messages.slice(expectedAsociations.length);
-          console.log(`🗑️ Segunda pasada: ${segundaPasada.length} mensajes pendientes`);
+        console.log(`📋 Verificación final:`);
+        console.log(`   - Total mensajes del bot: ${verificacionBotMessages.length}`);
+        console.log(`   - Mensajes V2 restantes: ${verificacionV2Messages.length}`);
+        console.log(`   - Mensajes V2 esperados: ${expectedAsociations.length}`);
+        
+        if (verificacionV2Messages.length > expectedAsociations.length) {
+          const sobrantes = verificacionV2Messages.length - expectedAsociations.length;
+          console.log(`🚨 AÚN HAY ${sobrantes} MENSAJE(S) V2 SOBRANTE(S)`);
+          console.log(`   - IDs restantes: ${verificacionV2Messages.map(m => m.id).join(', ')}`);
           
-          for (const msg of segundaPasada) {
+          // ✅ FIX: Intento adicional de eliminación más agresivo
+          const mensajesParaSegundaEliminacion = verificacionV2Messages
+            .sort((a, b) => b.createdTimestamp - a.createdTimestamp)
+            .slice(0, sobrantes);
+          
+          console.log('🔄 Realizando segunda pasada de eliminación...');
+          for (const msgExtra of mensajesParaSegundaEliminacion) {
             try {
-              await msg.delete();
-              console.log(`✅ Segunda pasada exitosa: ${msg.id}`);
+              await msgExtra.delete();
+              console.log(`✅ Segunda eliminación exitosa: ${msgExtra.id}`);
+              await new Promise(resolve => setTimeout(resolve, 500));
             } catch (error) {
-              console.error(`❌ Segunda pasada fallida: ${msg.id}`, error.message);
+              console.error(`❌ Segunda eliminación fallida: ${msgExtra.id}`, error.message);
             }
           }
+        } else {
+          console.log('✅ Verificación final exitosa: número correcto de mensajes V2');
         }
       }
     } else {

@@ -162,6 +162,12 @@ function createContainerForStaff(asociaciones, staffId, staffDisplayName, sorted
           )
         : null;
 
+      const ahora = Date.now();
+        const msRenovacion = (aso.Renovacion || 0) * 24 * 60 * 60 * 1000;
+const renovada = aso.UltimaRenovacion
+  ? (ahora - new Date(aso.UltimaRenovacion).getTime()) < msRenovacion
+  : false;
+
       container
         .addSeparatorComponents(new SeparatorBuilder())
         .addTextDisplayComponents(
@@ -169,7 +175,8 @@ function createContainerForStaff(asociaciones, staffId, staffDisplayName, sorted
             [
               aso.Canal ? `<:canales:1340014379080618035> <#${aso.Canal}>` : '<:canales:1340014379080618035> Sin canal',
               aso.Renovacion ? `🗓️ <t:${renovacionTimestamp}:R>` : '🗓️ No definido',
-              aso.Representante ? `<:representante:1340014390342193252> <@${aso.Representante}>` : '<:representante:1340014390342193252> Sin representante'
+              aso.Representante ? `<:representante:1340014390342193252> <@${aso.Representante}>` : '<:representante:1340014390342193252> Sin representante',
+              renovada ? '✅ **Renovada**'  : '❌ **No renovada**'
             ].join('\n')
           )
         );
