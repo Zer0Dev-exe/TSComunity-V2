@@ -159,7 +159,7 @@ module.exports = {
 
           const canal = interaction.options.getChannel("canal");
   
-f (!asociations.categories.includes(canal.parentId)) {
+if (!asociations.categories.includes(canal.parentId)) {
   return interaction.reply({
     content: '🚫 Este canal no pertenece a las categorías de asociaciones.',
     ephemeral: true
