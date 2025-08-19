@@ -11,14 +11,14 @@ const {
 } = require('discord.js')
 const Asociacion = require('../Esquemas/asociacionesSchema')
 
+const { asociations } = require('../configs/config.js')
+
 // Constante para el prefijo de canales de staff
 const STAFF_CHANNEL_PREFIX = '﹏︿'
 
 module.exports = async function actualizarListaAsociaciones(client) {
   try {
     const TARGET_CHANNEL_ID = '1339987513401413735'
-    const categoria1Id = '1217154240175407196'
-    const categoria2Id = '1267736691083317300'
 
     // -------------------------
     // helpers
@@ -207,7 +207,7 @@ function createSummaryEmbed(asociations, sinAsignarCount) {
     .addFields(
       { name: '📈 Total', value: `\`${total + sinAsignarCount}\``, inline: true },
       { name: '📋 Sin asignar', value: `\`${sinAsignarCount}\``, inline: true },
-      { name: '📊 % Renovación', value: `$\`{porcentajeRenovacion}%\``, inline: true },
+      { name: '📊 % Renovación', value: `\`${porcentajeRenovacion}%\``, inline: true },
       { name: '✅ Renovadas', value: `\`${renovadas}\``, inline: true },
       { name: '⚠️ Expiran en < 2 días', value: `\`${vencenPronto}\``, inline: true },
       { name: '❌ Sin Renovar', value: `\`${sinRenovar}\``, inline: true }
@@ -227,7 +227,7 @@ function createSummaryEmbed(asociations, sinAsignarCount) {
     // Obtenemos canales de las dos categorías (filtramos por parentId y excluimos canales de staff)
     const canalesEnCategorias = client.channels.cache.filter(ch =>
       ch.isTextBased() && 
-      (ch.parentId === categoria1Id || ch.parentId === categoria2Id) &&
+      asociations.categories.includes(ch.parentId) &&
       !ch.name.startsWith(STAFF_CHANNEL_PREFIX)
     )
 

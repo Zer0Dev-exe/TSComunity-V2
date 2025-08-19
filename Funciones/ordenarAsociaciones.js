@@ -13,9 +13,10 @@ const {
 
 const Asociacion = require('../Esquemas/asociacionesSchema')
 
+const { asociations } = require('../configs/config.js')
 // CONFIG — reemplaza estos IDs por los de tu servidor
 const GUILD_ID = '1093864130030612521'
-const TARGET_CATEGORY_IDS = ['1217154240175407196', '1267736691083317300']
+const TARGET_CATEGORY_IDS = asociations.categories
 const STAFF_ROLE_IDS = ['1107331844866846770', '1107329826982989906', '1202685031219200040', '1363927756617941154']
 
 // ajustes por defecto - MÁS CONSERVADORES PARA EVITAR RATE LIMITS

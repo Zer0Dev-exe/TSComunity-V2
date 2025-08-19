@@ -1,6 +1,10 @@
 const { SlashCommandBuilder, EmbedBuilder } = require("discord.js");
 const Asociacion = require("../../Esquemas/asociacionesSchema.js"); // Cambia al modelo correcto
 
+// IDs de categorías válidas para asociaciones
+const { asociations } = require('../configs/config.js')
+
+
 module.exports = {
     data: new SlashCommandBuilder()
       .setName("asociaciones")
@@ -34,38 +38,10 @@ module.exports = {
       )
       .addSubcommand((subcommand) =>
         subcommand
-          .setName("remover")
-          .setDescription("Elimina un canal de tu lista de asociaciones.")
+          .setName("desasignar")
+          .setDescription("Desasigna un canal.")
           .addChannelOption((option) =>
-            option.setName("canal").setDescription("El canal a eliminar.").setRequired(true)
-          )
-      )
-      .addSubcommand((subcommand) =>
-        subcommand
-          .setName("tuyas")
-          .setDescription("Muestra todos los canales asociados a ti.")
-      )
-      .addSubcommand((subcommand) =>
-        subcommand
-          .setName("agregar-manual")
-          .setDescription("Asocia un canal existente manualmente.")
-          .addChannelOption((option) =>
-            option
-              .setName("canal")
-              .setDescription("El canal a asociar manualmente.")
-              .setRequired(true)
-          )
-          .addNumberOption((option) =>
-            option
-              .setName("renovacion-dias")
-              .setDescription("Número de días hasta la renovación.")
-              .setRequired(true)
-          )
-          .addUserOption((option) =>
-            option
-              .setName("representante")
-              .setDescription("Elige al representante responsable de esta asociación.")
-              .setRequired(true)
+            option.setName("canal").setDescription("El canal a desasignar.").setRequired(true)
           )
       )
       .addSubcommand((subcommand) =>
@@ -75,7 +51,7 @@ module.exports = {
           .addChannelOption((option) =>
             option
               .setName("canal")
-              .setDescription("El usuario a asignar.")
+              .setDescription("El canal a editar.")
               .setRequired(true)
           )
           .addUserOption((option) =>
@@ -96,19 +72,10 @@ module.exports = {
               .setDescription("El representante de la asociación.")
               .setRequired(false)
           )
-      )
-      .addSubcommand((subcommand) =>
-        subcommand
-          .setName("lista")
-          .setDescription("Muestra todos los canales asociados en el servidor.")
       ).addSubcommand((subcommand) =>
         subcommand
-          .setName("leaderboard")
-          .setDescription("Leaderbaord de renovación de asociciones.")
-      ).addSubcommand((subcommand) =>
-        subcommand
-          .setName("reset-puntos")
-          .setDescription("Resetear los puntos de asociciones.")
+          .setName("top")
+          .setDescription("Top de renovación de asociciones.")
       ),
   
     async execute(interaction) {
@@ -116,6 +83,7 @@ module.exports = {
   
       switch (subcommand) {
         case "agregar": {
+          
 
           const ROLES_PERMITIDOS = ['1106553480803516437', '1107345436492185753', '1106553536839422022', '1363927756617941154', '1202685031219200040']
 
@@ -135,6 +103,13 @@ module.exports = {
           const renovacion = interaction.options.getNumber("renovacion-dias");
           const representante = interaction.options.getUser("representante");
   
+        if (!asociations.categories.includes(categoria.id)) {
+          return interaction.reply({
+            content: '🚫 No puedes crear asociaciones fuera de las categorías permitidas.',
+            ephemeral: true
+          });
+        }
+
           // Crear el canal en la categoría especificada
           const canal = await interaction.guild.channels.create({
             name: nombre,
@@ -167,7 +142,7 @@ module.exports = {
           );
         }
   
-        case "remover": {
+        case "desasignar": {
 
           const ROLES_PERMITIDOS = ['1106553480803516437', '1107345436492185753', '1106553536839422022', '1363927756617941154', '1202685031219200040']
 
@@ -184,6 +159,13 @@ module.exports = {
 
           const canal = interaction.options.getChannel("canal");
   
+f (!asociations.categories.includes(canal.parentId)) {
+  return interaction.reply({
+    content: '🚫 Este canal no pertenece a las categorías de asociaciones.',
+    ephemeral: true
+  });
+}
+
           const resultado = await Asociacion.deleteOne({
             Canal: canal.id,
           });
@@ -193,93 +175,6 @@ module.exports = {
           } else {
             return interaction.reply("No se encontró el canal en tus asociaciones.");
           }
-        }
-
-        case "tuyas": {
-
-          const ROLES_PERMITIDOS = ['1106553480803516437', '1107345436492185753', '1106553536839422022', '1363927756617941154', '1202685031219200040', '959153630328528976']
-
-          const tienePermiso = interaction.member.roles.cache.some(role =>
-            ROLES_PERMITIDOS.includes(role.id)
-          );
-    
-          if (!tienePermiso) {
-            return interaction.reply({
-             content: '🚫 No tienes permiso para usar este comando.',
-              ephemeral: true
-            });
-          }
-
-            const asignado = interaction.user.id;
-            const asociaciones = await Asociacion.find({ Asignado: asignado });
-
-            if (asociaciones.length === 0) {
-                return interaction.reply("No tienes canales asociados.");
-            }
-
-            const lista = asociaciones
-                .map(
-                    (a) =>
-                        `- **Canal:** <#${a.Canal}>\n- **Renovación:** ${a.Renovacion} días\n- **Representante:** <@${a.Representante}> / ${a.Representante}\n`
-                )
-                .join("\n");
-
-            const embed = new EmbedBuilder()
-                .setColor('Purple')
-                .setTitle(`Canales asociados a ${interaction.user.username}`)
-                .setDescription(`Aquí tienes una lista de los canales asociados a tu cuenta:\n\n${lista}`)
-                .setFooter({ text: "Si tienes alguna pregunta, no dudes en contactarnos." })
-                .setTimestamp();
-
-            return interaction.reply({ embeds: [embed] });
-        }
-
-        case "agregar-manual": {
-
-          const ROLES_PERMITIDOS = ['1106553480803516437', '1107345436492185753', '1106553536839422022', '1363927756617941154', '1202685031219200040']
-
-          const tienePermiso = interaction.member.roles.cache.some(role =>
-            ROLES_PERMITIDOS.includes(role.id)
-          );
-    
-          if (!tienePermiso) {
-            return interaction.reply({
-             content: '🚫 No tienes permiso para usar este comando.',
-              ephemeral: true
-            });
-          }
-
-          const canal = interaction.options.getChannel("canal");
-          const renovacion = interaction.options.getNumber("renovacion-dias");
-          const representante = interaction.options.getUser("representante");
-  
-          const data = await Asociacion.findOne({ Canal: canal.id })
-          if(data) return interaction.reply('Ya estaba creada esta asociacion')
-          const nuevaAsociacion = new Asociacion({
-            Representante: representante.id,
-            Renovacion: renovacion,
-            Canal: canal.id,
-            Categoria: canal.parentId,
-          });
-  
-          await nuevaAsociacion.save();
-  
-          // Crear un embed visual para la respuesta
-          const embed = new EmbedBuilder()
-            .setTitle("Nueva Asociación Creada")
-            .addFields(
-              { name: "Canal", value: `<#${canal.id}>`, inline: true },
-              { name: "Renovación", value: `${renovacion} días`, inline: true },
-              { name: "Representante", value: `<@${representante.id}>`, inline: true }
-            )
-            .setColor("#0099ff") // Puedes cambiar el color
-            .setTimestamp() // Añadir un timestamp si lo deseas
-            .setFooter({ text: "Asociación creada correctamente." });
-  
-          // Responder con el embed
-          return interaction.reply({
-            embeds: [embed]
-          });
         }
   
         case "editar": {
@@ -302,10 +197,32 @@ module.exports = {
           const duracion = interaction.options.getInteger("duracion");
           const representante = interaction.options.getUser("representante");
           
+if (!asociations.categories.includes(canal.parentId)) {
+  return interaction.reply({
+    content: '🚫 Este canal no pertenece a una categoría de asociaciones.',
+    ephemeral: true
+  });
+}
+
           const data = await Asociacion.findOne({ Canal: canal.id });
           
           if (!data) {
-            return await interaction.reply('No está guardado este canal en la base de datos, primero usa /asociaciones agregar o agregar-manual');
+            await Asociacion.create({
+              Canal: canal.id,
+              Asignado: encargado ? encargado.id : null,
+              Renovacion: duracion || null,
+              Representante: representante ? representante.id : null,
+            });
+            const embed = new EmbedBuilder()
+            .setTitle('Asociación Editada')
+            .setColor('Purple')
+            .addFields(
+              { name: 'Canal', value: `<#${canal.id}>`, inline: true },
+              { name: 'Encargado', value: encargado ? `<@${encargado.id}>` : 'Sin cambios', inline: true },
+              { name: 'Renovación', value: duracion ? duracion.toString() : 'Sin cambios', inline: true },
+              { name: 'Representante', value: representante ? `<@${representante.id}>` : 'Sin cambios', inline: true },
+            );
+                      return interaction.reply({ embeds: [embed] });
           }
           
           // Actualizar datos
@@ -330,67 +247,7 @@ module.exports = {
           
         }
 
-        case "lista": {
-
-          const ROLES_PERMITIDOS = ['1106553480803516437', '1107345436492185753', '1106553536839422022', '1363927756617941154', '1202685031219200040', '959153630328528976']
-
-          const tienePermiso = interaction.member.roles.cache.some(role =>
-            ROLES_PERMITIDOS.includes(role.id)
-          );
-    
-          if (!tienePermiso) {
-            return interaction.reply({
-             content: '🚫 No tienes permiso para usar este comando.',
-              ephemeral: true
-            });
-          }
-
-            const asociaciones = await Asociacion.find();
-        
-            if (asociaciones.length === 0) {
-                return interaction.reply("No hay asociaciones registradas en este servidor.");
-            }
-        
-            const lista = asociaciones
-                .map(
-                    (a) =>
-                        `- 📺 <#${a.Canal}>\n- 🔄 ${a.Renovacion} días\n- 🙋 ${a.Representante}\n- 📝: ${a.Asignado ? a.Asignado : "No hay"}\n`
-                )
-                .join("\n");
-        
-            const embeds = [];
-            let chunk = '';
-            let embed = new EmbedBuilder()
-                .setColor("Purple")
-                .setTitle("Lista de todas las asociaciones")
-                .setFooter({ text: "Si tienes alguna pregunta, no dudes en contactarnos." })
-                .setTimestamp();
-        
-            // Dividir la lista en partes si supera el límite de 1023 caracteres
-            lista.split('\n').forEach(line => {
-                if ((chunk + line + '\n').length <= 1023) {
-                    chunk += line + '\n';
-                } else {
-                    embed.setDescription(`Aquí tienes una lista de todos los canales asociados:\n\n${chunk}`);
-                    embeds.push(embed);
-                    chunk = line + '\n';  // Iniciar un nuevo "chunk"
-                    embed = new EmbedBuilder()
-                        .setColor("Purple")
-                        .setFooter({ text: "Si tienes alguna pregunta, no dudes en contactarnos." })
-                        .setTimestamp();
-                }
-            });
-        
-            // Añadir el último "chunk"
-            if (chunk) {
-                embed.setDescription(`Aquí tienes una lista de todos los canales asociados:\n\n${chunk}`);
-                embeds.push(embed);
-            }
-        
-            return interaction.reply({ embeds });
-        }
-
-        case 'leaderboard': {
+        case 'top': {
 
           const ROLES_PERMITIDOS = ['1106553480803516437', '1107345436492185753', '1106553536839422022', '1363927756617941154', '1202685031219200040', '959153630328528976']
 
@@ -435,40 +292,6 @@ module.exports = {
             console.error('Error al obtener el ranking:', error);
             return interaction.reply('Hubo un error al obtener el ranking de renovaciones.');
         }
-
-        } case 'reset-puntos': {
-
-          const ROLES_PERMITIDOS2 = ['1106553480803516437', '1107345436492185753']; // IDs de roles permitidos
-
-          const tienePermiso2 = interaction.member.roles.cache.some(role =>
-            ROLES_PERMITIDOS2.includes(role.id)
-          );
-        
-          if (!tienePermiso2) {
-            return interaction.reply({
-              content: '🚫 No tienes permiso para usar este comando.',
-              ephemeral: true
-            });
-          }
-
-
-          const staffData = require('../../Esquemas/staffStats.js'); // Cargar el esquema de staff
-      
-          try {
-              // Buscar todos los usuarios
-              const usuarios = await staffData.find();
-      
-              // Recorrer todos los usuarios y resetear las renovaciones
-              await Promise.all(usuarios.map(async (usuario) => {
-                  usuario.Renovaciones = 0; // Resetear las renovaciones
-                  await usuario.save(); // Guardar el cambio
-              }));
-      
-              return interaction.reply('Las renovaciones han sido reseteadas para todos los usuarios.');
-          } catch (error) {
-              console.error('Error al resetear las renovaciones:', error);
-              return interaction.reply('Hubo un error al intentar resetear las renovaciones.');
-          }
       }
 
         default:
