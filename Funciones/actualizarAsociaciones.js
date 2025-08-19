@@ -158,11 +158,11 @@ function createContainerForAsociation(asociation) {
     /**
      * Crea un Embed resumen
      */
-function createSummaryEmbed(asociations, sinAsignarCount) {
+function createSummaryEmbed(asociationss, sinAsignarCount) {
   const ahora = Date.now()
-  const total = asociations.length
+  const total = asociationss.length
 
-  const sinRenovar = asociations.filter(a => {
+  const sinRenovar = asociationss.filter(a => {
     const last = a.UltimaRenovacion ?? null
     const renovacionDays = a.Renovacion ?? a.renovacion ?? null
 
@@ -180,7 +180,7 @@ function createSummaryEmbed(asociations, sinAsignarCount) {
   const renovadas = total - sinRenovar
 
   // Calcular asociaciones que vencen pronto (próximos 7 días)
-  const vencenPronto = asociations.filter(a => {
+  const vencenPronto = asociationss.filter(a => {
     const last = a.UltimaRenovacion ?? null
     const renovacionDays = a.Renovacion ?? a.renovacion ?? null
 
@@ -224,9 +224,10 @@ function createSummaryEmbed(asociations, sinAsignarCount) {
     const guild = channel.guild
 
     // Obtenemos canales de las dos categorías (filtramos por parentId y excluimos canales de staff)
+    const { aso}
     const canalesEnCategorias = client.channels.cache.filter(ch =>
       ch.isTextBased() && 
-      asociations.categories.includes(ch.parentId) &&
+      asociationss.categories.includes(ch.parentId) &&
       !ch.name.startsWith(STAFF_CHANNEL_PREFIX)
     )
 
@@ -234,7 +235,7 @@ function createSummaryEmbed(asociations, sinAsignarCount) {
     const todasAsociacionesDB = await Asociacion.find({ Canal: { $ne: null } })
 
     // Verificamos que el canal existe realmente en el cliente
-    const asociations = (
+    const asociationss = (
       await Promise.all(
         todasAsociacionesDB.map(async (aso) => {
           try {
@@ -251,7 +252,7 @@ function createSummaryEmbed(asociations, sinAsignarCount) {
     ).filter(Boolean)
 
     // Set de canales ya registrados
-    const canalesRegistrados = new Set(asociations.map(aso => aso.Canal))
+    const canalesRegistrados = new Set(asociationss.map(aso => aso.Canal))
 
     // Canales en categorías que NO están registrados
     const canalesNoRegistrados = canalesEnCategorias.filter(c => !canalesRegistrados.has(c.id))
@@ -259,7 +260,7 @@ function createSummaryEmbed(asociations, sinAsignarCount) {
     // -------------------------
     // Agrupar y ordenar
     // -------------------------
-    const agrupado = asociations.reduce((acc, aso) => {
+    const agrupado = asociationss.reduce((acc, aso) => {
       const key = aso.Asignado || 'SinAsignar'
       if (!acc[key]) acc[key] = []
       acc[key].push(aso)
@@ -351,7 +352,7 @@ function createSummaryEmbed(asociations, sinAsignarCount) {
       }
 
       // Crear mensaje resumen
-      const summaryEmbed = createSummaryEmbed(asociations, sinAsignarCount)
+      const summaryEmbed = createSummaryEmbed(asociationss, sinAsignarCount)
       await channel.send({
         embeds: [summaryEmbed],
         allowedMentions: { users: [] }
@@ -373,7 +374,7 @@ function createSummaryEmbed(asociations, sinAsignarCount) {
     }
 
     // Actualizar mensaje resumen
-    const newSummaryEmbed = createSummaryEmbed(asociations, sinAsignarCount)
+    const newSummaryEmbed = createSummaryEmbed(asociationss, sinAsignarCount)
     await summaryMsg.edit({
       embeds: [newSummaryEmbed]
     })
