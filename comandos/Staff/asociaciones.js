@@ -2,7 +2,7 @@ const { SlashCommandBuilder, EmbedBuilder } = require("discord.js");
 const Asociacion = require("../../Esquemas/asociacionesSchema.js"); // Cambia al modelo correcto
 
 // IDs de categorías válidas para asociaciones
-const { asociations } = require('../configs/config.js')
+const { asociations } = require('../../configs/config.js')
 
 
 module.exports = {
