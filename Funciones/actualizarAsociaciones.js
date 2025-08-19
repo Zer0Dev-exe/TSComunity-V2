@@ -224,10 +224,10 @@ function createSummaryEmbed(asociationss, sinAsignarCount) {
     const guild = channel.guild
 
     // Obtenemos canales de las dos categorías (filtramos por parentId y excluimos canales de staff)
-    const { aso}
+    const { asociations } = require('../configs/config.js')
     const canalesEnCategorias = client.channels.cache.filter(ch =>
       ch.isTextBased() && 
-      asociationss.categories.includes(ch.parentId) &&
+      asociations.categories.includes(ch.parentId) &&
       !ch.name.startsWith(STAFF_CHANNEL_PREFIX)
     )
 
