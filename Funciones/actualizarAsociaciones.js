@@ -11,13 +11,14 @@ const {
 } = require('discord.js')
 const Asociacion = require('../Esquemas/asociacionesSchema')
 
-const { asociations } = require('../configs/config.js')
 
 // Constante para el prefijo de canales de staff
 const STAFF_CHANNEL_PREFIX = '﹏︿'
 
 module.exports = async function actualizarListaAsociaciones(client) {
   try {
+
+const { asociations } = require('../configs/config.js')
     const TARGET_CHANNEL_ID = '1339987513401413735'
 
     // -------------------------
