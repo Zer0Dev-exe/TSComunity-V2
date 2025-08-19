@@ -263,7 +263,7 @@ module.exports = async function actualizarListaAsociaciones(client) {
       })
     }
 
-    const sinAsignarGroup = expectedAsociations[expectedAsociaciones.length - 1]
+    const sinAsignarGroup = expectedAsociations[expectedAsociations.length - 1]
     sinAsignarGroup.sort((a, b) => {
       const nameA = getChannelName(a)
       const nameB = getChannelName(b)
