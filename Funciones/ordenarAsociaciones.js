@@ -84,8 +84,8 @@ function normalizeStaffName(displayName) {
  */
 function createDiscordChannelName(staffDisplayName) {
   const normalizedName = normalizeStaffName(staffDisplayName)
-  const targetChannelName = `${STAFF_CHANNEL_PREFIX}${normalizedName}${STAFF_CHANNEL_SUFFIX}`
-  return normalizeDiscordChannelName(targetChannelName)
+  const targetChannelName = `${normalizedName}`
+  return normalizeDiscordChannelName(`${STAFF_CHANNEL_PREFIX}${targetChannelName}${STAFF_CHANNEL_SUFFIX}`)
 }
 
 /**
@@ -140,71 +140,81 @@ function escapeRegex(string) {
 /**
  * Crea un container para mostrar las asociaciones de un staff
  */
-function createContainerForStaff(asociaciones, staffId, staffDisplayName, sortedChannels) {
-  const isUnassigned = staffId === 'unassigned' || staffId === 'SinAsignar'
-  
+function createContainerForStaff(asociation, staffId, staffDisplayName, sortedChannels) {
+  const asignado = asociation[0]?.Asignado || 'SinAsignar'
+  const ahora = Date.now()
+
+  // Calcular asociaciones renovadas si hay un asignado
+  let renovadas = 0
+  if (asignado !== 'SinAsignar' && asociation.length > 0) {
+    renovadas = asociation.filter(aso => {
+      if (!aso.UltimaRenovacion) return false
+      const msRenovacion = (aso.Renovacion || 0) * 24 * 60 * 60 * 1000
+      return (ahora - new Date(aso.UltimaRenovacion).getTime()) < msRenovacion
+    }).length
+  }
+
   const container = new ContainerBuilder()
-    .setAccentColor(isUnassigned ? 0xffcc00 : 0x00b0f4)
+    .setAccentColor(asignado === 'SinAsignar' ? 0xffcc00 : 0x00b0f4)
     .addTextDisplayComponents(
       new TextDisplayBuilder().setContent(
-        isUnassigned
-          ? `### 📋 Sin asignar — ${asociaciones.length}`
-          : `### 📌 <@${staffId}> — ${asociaciones.length}`
+        asignado === 'SinAsignar'
+          ? `### 📋 Sin asignar — ${asociation.length}`
+          : `### 📌 <@${asignado}> — ${renovadas}/${asociation.length}`
       )
     )
 
-  if (!asociaciones || asociaciones.length === 0) {
+  if (!asociation || asociation.length === 0) {
     container
       .addSeparatorComponents(new SeparatorBuilder())
       .addTextDisplayComponents(
         new TextDisplayBuilder().setContent(
-          isUnassigned
-            ? 'No hay asociaciones sin asignar.'
-            : 'El usuario no tiene asociaciones.'
+          asignado === 'SinAsignar'
+            ? '> No hay asociaciones sin asignar.'
+            : '> El usuario no tiene asociaciones asignadas.'
         )
       )
     return container
   }
 
-  const asoByChannel = new Map(asociaciones.map(a => [String(a.Canal), a]))
-  
-  for (let i = 0; i < sortedChannels.length; i++) {
-    const channel = sortedChannels[i]
-    const aso = asoByChannel.get(channel.id)
-    
-    if (!aso) continue
-    
-    if (!isUnassigned) {
+  for (const aso of asociation) {
+    if (asignado !== 'SinAsignar') {
       const renovacionTimestamp = aso.UltimaRenovacion
         ? Math.floor(
             (new Date(aso.UltimaRenovacion).getTime() + aso.Renovacion * 24 * 60 * 60 * 1000) / 1000
           )
         : null
 
-      const ahora = Date.now()
-        const msRenovacion = (aso.Renovacion || 0) * 24 * 60 * 60 * 1000
-const renovada = aso.UltimaRenovacion
-  ? (ahora - new Date(aso.UltimaRenovacion).getTime()) < msRenovacion
-  : false
+      const msRenovacion = (aso.Renovacion || 0) * 24 * 60 * 60 * 1000
+      const renovada = aso.UltimaRenovacion
+        ? (ahora - new Date(aso.UltimaRenovacion).getTime()) < msRenovacion
+        : false
+
+      // Determinar estado y estilo
+      const estado = renovada ? '✅ Renovada' : '❌ Pendiente'
+      const tiempoTexto = renovacionTimestamp 
+        ? 🗓️ `<t:${renovacionTimestamp}:R> `
+        : '🗓️ Sin fecha definida'
 
       container
         .addSeparatorComponents(new SeparatorBuilder())
         .addTextDisplayComponents(
-          new TextDisplayBuilder().setContent(
-            [
-              aso.Canal ? `<:canales:1340014379080618035> <#${aso.Canal}>` : '<:canales:1340014379080618035> Sin canal',
-              aso.Renovacion ? `🗓️ <t:${renovacionTimestamp}:R>` : '🗓️ No definido',
-              aso.Representante ? `<:representante:1340014390342193252> <@${aso.Representante}>` : '<:representante:1340014390342193252> Sin representante',
-              renovada ? '✅ **Renovada**'  : '❌ **No renovada**'
-            ].join('\n')
-          )
+          new TextDisplayBuilder().setContent([
+            // Línea principal con canal y estado
+            `${aso.Canal ? <:canales:1340014379080618035> <#${aso.Canal}> : '<:canales:1340014379080618035> *Sin canal*'} - ${estado}`,
+
+            // Información adicional
+            `> ${tiempoTexto}`,
+            `> ${aso.Representante ? <:representante:1340014390342193252> <@${aso.Representante}> : '<:representante:1340014390342193252> *Sin representante*'}`
+          ].join('\n'))
         )
     } else {
+      // Para asociaciones sin asignar - diseño más simple
       container
         .addSeparatorComponents(new SeparatorBuilder())
         .addTextDisplayComponents(
           new TextDisplayBuilder().setContent(
-            `${aso.Canal ? `<:canales:1340014379080618035> <#${aso.Canal}>` : '<:canales:1340014379080618035> Sin canal'}`
+            `${aso.Canal ? <:canales:1340014379080618035> <#${aso.Canal}> : '<:canales:1340014379080618035> *Sin canal*'}\n> *Disponible para asignar*`
           )
         )
     }

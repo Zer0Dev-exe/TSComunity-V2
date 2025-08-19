@@ -58,116 +58,149 @@ module.exports = async function actualizarListaAsociaciones(client) {
     /**
      * Crea un ContainerBuilder para una lista de asociaciones (una "división")
      */
-    function createContainerForAsociation(asociation) {
-      const asignado = asociation[0]?.Asignado || 'SinAsignar'
-      const ahora = Date.now()
+function createContainerForAsociation(asociation) {
+  const asignado = asociation[0]?.Asignado || 'SinAsignar'
+  const ahora = Date.now()
 
-      const container = new ContainerBuilder()
-        .setAccentColor(asignado === 'SinAsignar' ? 0xffcc00 : 0x00b0f4)
+  // Calcular asociaciones renovadas si hay un asignado
+  let renovadas = 0
+  if (asignado !== 'SinAsignar' && asociation.length > 0) {
+    renovadas = asociation.filter(aso => {
+      if (!aso.UltimaRenovacion) return false
+      const msRenovacion = (aso.Renovacion || 0) * 24 * 60 * 60 * 1000
+      return (ahora - new Date(aso.UltimaRenovacion).getTime()) < msRenovacion
+    }).length
+  }
+
+  const container = new ContainerBuilder()
+    .setAccentColor(asignado === 'SinAsignar' ? 0xffcc00 : 0x00b0f4)
+    .addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(
+        asignado === 'SinAsignar'
+          ? `### 📋 Sin asignar — ${asociation.length}`
+          : `### 📌 <@${asignado}> — ${renovadas}/${asociation.length}`
+      )
+    )
+
+  if (!asociation || asociation.length === 0) {
+    container
+      .addSeparatorComponents(new SeparatorBuilder())
+      .addTextDisplayComponents(
+        new TextDisplayBuilder().setContent(
+          asignado === 'SinAsignar'
+            ? '> *No hay asociaciones sin asignar.*'
+            : '> *El usuario no tiene asociaciones asignadas.*'
+        )
+      )
+    return container
+  }
+
+  for (const aso of asociation) {
+    if (asignado !== 'SinAsignar') {
+      const renovacionTimestamp = aso.UltimaRenovacion
+        ? Math.floor(
+            (new Date(aso.UltimaRenovacion).getTime() + aso.Renovacion * 24 * 60 * 60 * 1000) / 1000
+          )
+        : null
+
+      const msRenovacion = (aso.Renovacion || 0) * 24 * 60 * 60 * 1000
+      const renovada = aso.UltimaRenovacion
+        ? (ahora - new Date(aso.UltimaRenovacion).getTime()) < msRenovacion
+        : false
+
+      // Determinar estado y estilo
+      const estado = renovada ? '✅ **Renovada**' : '❌ **Pendiente**'
+      const tiempoTexto = renovacionTimestamp 
+        ? `🗓️ <t:${renovacionTimestamp}:R>` 
+        : '🗓️ *Sin fecha definida*'
+
+      container
+        .addSeparatorComponents(new SeparatorBuilder())
+        .addTextDisplayComponents(
+          new TextDisplayBuilder().setContent([
+            // Línea principal con canal y estado
+            `${aso.Canal ? `<:canales:1340014379080618035> <#${aso.Canal}>` : '<:canales:1340014379080618035> *Sin canal*'} - ${estado}`,
+            
+            // Información adicional
+            `> ${tiempoTexto}`,
+            `> ${aso.Representante ? `<:representante:1340014390342193252> <@${aso.Representante}>` : '<:representante:1340014390342193252> *Sin representante*'}`
+          ].join('\n'))
+        )
+    } else {
+      // Para asociaciones sin asignar - diseño más simple
+      container
+        .addSeparatorComponents(new SeparatorBuilder())
         .addTextDisplayComponents(
           new TextDisplayBuilder().setContent(
-            asignado === 'SinAsignar'
-              ? `### 📋 Sin asignar — ${asociation.length}`
-              : `### 📌 <@${asignado}> — ${asociation.length}`
+            `${aso.Canal ? `<:canales:1340014379080618035> <#${aso.Canal}>` : '<:canales:1340014379080618035> *Sin canal*'}\n> *Disponible para asignar*`
           )
         )
-
-      if (!asociation || asociation.length === 0) {
-        container
-          .addSeparatorComponents(new SeparatorBuilder())
-          .addTextDisplayComponents(
-            new TextDisplayBuilder().setContent(
-              asignado === 'SinAsignar'
-                ? 'No hay asociaciones sin asignar.'
-                : 'El usuario no tiene asociaciones.'
-            )
-          )
-        return container
-      }
-
-      for (const aso of asociation) {
-        if (asignado !== 'SinAsignar') {
-          const renovacionTimestamp = aso.UltimaRenovacion
-            ? Math.floor(
-                (new Date(aso.UltimaRenovacion).getTime() + aso.Renovacion * 24 * 60 * 60 * 1000) / 1000
-              )
-            : null
-
-          const msRenovacion = (aso.Renovacion || 0) * 24 * 60 * 60 * 1000
-          const renovada = aso.UltimaRenovacion
-            ? (ahora - new Date(aso.UltimaRenovacion).getTime()) < msRenovacion
-            : false
-
-          container
-            .addSeparatorComponents(new SeparatorBuilder())
-            .addTextDisplayComponents(
-              new TextDisplayBuilder().setContent(
-                [
-                  aso.Canal
-                    ? `<:canales:1340014379080618035> <#${aso.Canal}>`
-                    : '<:canales:1340014379080618035> Sin canal',
-
-                  renovacionTimestamp
-                    ? `🗓️ <t:${renovacionTimestamp}:R>`
-                    : '🗓️ No definido',
-
-                  aso.Representante
-                    ? `<:representante:1340014390342193252> <@${aso.Representante}>`
-                    : '<:representante:1340014390342193252> Sin representante',
-
-                  renovada
-                    ? '✅ **Renovada**'
-                    : '❌ **No renovada**'
-                ].join('\n')
-              )
-            )
-        } else {
-          container
-            .addSeparatorComponents(new SeparatorBuilder())
-            .addTextDisplayComponents(
-              new TextDisplayBuilder().setContent(
-                aso.Canal ? `<:canales:1340014379080618035> <#${aso.Canal}>` : '<:canales:1340014379080618035> Sin canal'
-              )
-            )
-        }
-      }
-
-      return container
     }
+  }
+
+  return container
+}
 
     /**
      * Crea un Embed resumen
      */
-    function createSummaryEmbed(asociations, sinAsignarCount) {
-      const ahora = Date.now()
-      const total = asociations.length
+function createSummaryEmbed(asociations, sinAsignarCount) {
+  const ahora = Date.now()
+  const total = asociations.length
 
-      const sinRenovar = asociations.filter(a => {
-        const last = a.UltimaRenovacion ?? null
-        const renovacionDays = a.Renovacion ?? a.renovacion ?? null
+  const sinRenovar = asociations.filter(a => {
+    const last = a.UltimaRenovacion ?? null
+    const renovacionDays = a.Renovacion ?? a.renovacion ?? null
 
-        if (!renovacionDays) return true
-        if (!last) return true
+    if (!renovacionDays) return true
+    if (!last) return true
 
-        const lastMs = (new Date(last)).getTime()
-        if (Number.isNaN(lastMs)) return true
+    const lastMs = (new Date(last)).getTime()
+    if (Number.isNaN(lastMs)) return true
 
-        const renovacionMs = Number(renovacionDays) * 24 * 60 * 60 * 1000
-        return (ahora - lastMs) > renovacionMs
-      }).length
+    const renovacionMs = Number(renovacionDays) * 24 * 60 * 60 * 1000
+    return (ahora - lastMs) > renovacionMs
+  }).length
 
-      const embed = new EmbedBuilder()
-        .setTitle('📊 Resumen de asociaciones')
-        .setColor(0x7289DA)
-        .addFields(
-          { name: 'Total', value: `${total + sinAsignarCount}`, inline: true },
-          { name: 'Sin asignar', value: `${sinAsignarCount}`, inline: true },
-          { name: 'Sin renovar', value: `${sinRenovar}`, inline: true },
-        )
+  // Calcular asociaciones renovadas
+  const renovadas = total - sinRenovar
 
-      return embed
-    }
+  // Calcular asociaciones que vencen pronto (próximos 7 días)
+  const vencenPronto = asociations.filter(a => {
+    const last = a.UltimaRenovacion ?? null
+    const renovacionDays = a.Renovacion ?? a.renovacion ?? null
 
+    if (!renovacionDays || !last) return false
+
+    const lastMs = (new Date(last)).getTime()
+    if (Number.isNaN(lastMs)) return false
+
+    const renovacionMs = Number(renovacionDays) * 24 * 60 * 60 * 1000
+    const venceEn = (lastMs + renovacionMs) - ahora
+    const diasParaVencer = venceEn / (24 * 60 * 60 * 1000)
+
+    // Está renovada pero vence en los próximos 7 días
+    return diasParaVencer > 0 && diasParaVencer <= 2
+  }).length
+
+  // Calcular porcentaje de renovación
+  const porcentajeRenovacion = total > 0 ? Math.round((renovadas / total) * 100) : 0
+
+  const embed = new EmbedBuilder()
+    .setTitle('📊 Resumen de asociaciones')
+    .setColor(0x7289DA)
+    .addFields(
+      { name: '📈 Total', value: `${total + sinAsignarCount}`, inline: true },
+      { name: '📋 Sin asignar', value: `${sinAsignarCount}`, inline: true },
+      { name: '⚠️ Expiran pronto', value: `${vencenPronto}`, inline: true },
+      { name: '✅ Renovadas', value: `${renovadas}`, inline: true },
+      { name: '❌ Sin renovar', value: `${sinRenovar}`, inline: true },
+      { name: '📊 %Renovación', value: `${porcentajeRenovacion}%`, inline: true }
+    )
+    .setTimestamp()
+
+  return embed
+}
     // -------------------------
     // inicio del flujo
     // -------------------------

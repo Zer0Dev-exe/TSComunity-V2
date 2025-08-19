@@ -324,50 +324,220 @@ borrarMensajes()
 
 const tareasAsociaciones = require('./Esquemas/tareasAsociaciones.js'); // Asegúrate de usar la ruta correcta
 
-// Verificar tareas pendientes cada 10 minutos
+// ==========================================
+// SISTEMA COMPLETO DE RENOVACIÓN DE ASOCIACIONES
+// Copia y pega este código directamente
+// ==========================================
+
 setInterval(async () => {
   try {
-    const tasks = await tareasAsociaciones.find({});
-    const now = Date.now();
+    const { EmbedBuilder } = require('discord.js');
+    
+    // ==========================================
+    // CONFIGURACIÓN
+    // ==========================================
+    const CONFIG = {
+      REMINDER_INTERVAL_DAYS: 2,
+      MAX_REMINDERS_PER_CYCLE: 5,
+      MAX_TOTAL_REMINDERS: 10,
+      STAFF_ROLES: ['1106553480803516437', '1107345436492185753', '1106553536839422022', '1363927756617941154', '1202685031219200040', '1107329826982989906', '1107331844866846770']
+    };
 
-    for (const task of tasks) {
-      const expirationTime = new Date(task.expirationDate).getTime();
-      
-      // Solo procesar si ya venció
-      if (expirationTime <= now) {
-        // Fecha del último aviso (si no existe, poner como vencimiento para avisar justo al expirar)
-        const lastNotified = task.lastNotified
-          ? new Date(task.lastNotified).getTime()
-          : expirationTime;
-
-        // Días desde el último aviso
-        const diffDays = Math.floor((now - lastNotified) / (1000 * 60 * 60 * 24));
-
-        if (diffDays >= 2) {
-          try {
-            const encargado = await client.users.fetch(task.userId);
-            if (encargado) {
-              await encargado.send(
-                `🔔 ¡<@${task.userId}>! Ya es hora de renovar tu asociación asignada, <#${task.channelId}>.`
-              );
-            }
-
-            // Actualizar el último aviso
-            await tareasAsociaciones.updateOne(
-              { _id: task._id },
-              { $set: { lastNotified: new Date() } }
-            );
-
-          } catch (err) {
-            console.error(`❌ Error enviando mensaje para canal ${task.channelId}:`, err);
-          }
-        }
+    // ==========================================
+    // FUNCIÓN: Verificar si usuario es staff
+    // ==========================================
+    async function isUserStillStaff(userId, guildId) {
+      try {
+        const guild = client.guilds.cache.get(guildId);
+        if (!guild) return false;
+        
+        const member = await guild.members.fetch(userId).catch(() => null);
+        if (!member) return false;
+        
+        return member.roles.cache.some(role => 
+          CONFIG.STAFF_ROLES.some(staffRole => 
+            role.id.toLowerCase().includes(staffRole.toLowerCase())
+          )
+        );
+      } catch (error) {
+        console.error(`Error verificando staff ${userId}:`, error);
+        return false;
       }
     }
+
+    // ==========================================
+    // FUNCIÓN: Crear embed
+    // ==========================================
+    function createRenewalEmbed(channelId, isFirstTime = false) {
+      const embed = new EmbedBuilder()
+        .setColor(isFirstTime ? '#ff9500' : '#ff3333')
+        .setTitle(isFirstTime ? '🔔 ¡Hora de Renovar!' : '⚠️ Recordatorio de Renovación')
+        .setDescription(
+          isFirstTime 
+            ? `Ya es posible renovar la asociación <#${channelId}>.\n\n**¡Es tu responsabilidad renovarla!**`
+            : `Recordatorio: Aún no has renovado la asociación <#${channelId}>.\n\n**Por favor, renuévala lo antes posible.**`
+        )
+        .setFooter({ 
+          text: isFirstTime 
+            ? 'Recibirás recordatorios cada 2 días si no renuevas'
+            : `Recordatorio #${Math.floor(Math.random() * 10) + 1} - Sistema automático`
+        })
+        .setTimestamp();
+      
+      return embed;
+    }
+
+    // ==========================================
+    // LÓGICA PRINCIPAL
+    // ==========================================
+    const tasks = await tareasAsociaciones.find({});
+    const now = Date.now();
+    let processedCount = 0;
+
+    console.log(`🔍 [${new Date().toLocaleTimeString()}] Verificando ${tasks.length} tareas...`);
+
+    for (const task of tasks) {
+      try {
+        // Verificar si ya venció
+        const expirationTime = new Date(task.expirationDate).getTime();
+        if (expirationTime > now) continue;
+
+        // Verificar si el canal existe
+        const channel = client.channels.cache.get(task.channelId);
+        if (!channel) {
+          await tareasAsociaciones.deleteOne({ _id: task._id });
+          continue;
+        }
+
+        // Verificar si el usuario sigue siendo staff
+        const guildId = channel.guild.id;
+        const isStillStaff = await isUserStillStaff(task.userId, guildId);
+        if (!isStillStaff) {
+          await tareasAsociaciones.deleteOne({ _id: task._id });
+          continue;
+        }
+
+        // Obtener usuario
+        const user = await client.users.fetch(task.userId).catch(() => null);
+        if (!user) {
+          console.log(`❌ Usuario ${task.userId} no encontrado, eliminando tarea...`);
+          await tareasAsociaciones.deleteOne({ _id: task._id });
+          continue;
+        }
+
+        // Limitar procesamiento por ciclo
+        if (processedCount >= CONFIG.MAX_REMINDERS_PER_CYCLE) {
+          console.log(`⚠️ Límite de ${CONFIG.MAX_REMINDERS_PER_CYCLE} recordatorios alcanzado`);
+          break;
+        }
+
+        // ==========================================
+        // CASO 1: PRIMERA NOTIFICACIÓN
+        // ==========================================
+        if (!task.firstNotified) {
+          try {
+            const embed = createRenewalEmbed(task.channelId, true);
+            
+            await user.send({
+              content: `<@${task.userId}>`,
+              embeds: [embed]
+            });
+
+            await tareasAsociaciones.updateOne(
+              { _id: task._id },
+              { 
+                $set: { 
+                  firstNotified: new Date(),
+                  lastNotified: new Date(),
+                  reminderCount: 1
+                } 
+              }
+            );
+
+            console.log(`📧 Primera notificación enviada para canal ${task.channelId}`);
+            processedCount++;
+
+          } catch (error) {
+            console.error(`❌ Error primera notificación canal ${task.channelId}:`, error);
+          }
+          continue;
+        }
+
+        // ==========================================
+        // CASO 2: RECORDATORIOS PERIÓDICOS
+        // ==========================================
+        const lastNotified = task.lastNotified ? new Date(task.lastNotified).getTime() : 0;
+        const daysSinceLastReminder = Math.floor((now - lastNotified) / (1000 * 60 * 60 * 24));
+        const reminderCount = task.reminderCount || 0;
+
+        // Verificar si toca enviar recordatorio
+        if (daysSinceLastReminder >= CONFIG.REMINDER_INTERVAL_DAYS && reminderCount < CONFIG.MAX_TOTAL_REMINDERS) {
+          try {
+            const embed = createRenewalEmbed(task.channelId, false);
+            
+            await user.send({
+              content: `<@${task.userId}>`,
+              embeds: [embed]
+            });
+
+            await tareasAsociaciones.updateOne(
+              { _id: task._id },
+              { 
+                $set: { 
+                  lastNotified: new Date()
+                },
+                $inc: {
+                  reminderCount: 1
+                }
+              }
+            );
+
+            console.log(`🔔 Recordatorio #${reminderCount + 1} enviado para canal ${task.channelId}`);
+            processedCount++;
+
+          } catch (error) {
+            console.error(`❌ Error recordatorio canal ${task.channelId}:`, error);
+          }
+        }
+        // Si ya alcanzó el máximo de recordatorios, informar pero no eliminar
+        else if (reminderCount >= CONFIG.MAX_TOTAL_REMINDERS) {
+          console.log(`⚠️ Canal ${task.channelId} alcanzó máximo de recordatorios (${CONFIG.MAX_TOTAL_REMINDERS})`);
+        }
+
+      } catch (taskError) {
+        console.error(`❌ Error procesando tarea ${task._id}:`, taskError);
+      }
+    }
+
+    // ==========================================
+    // LIMPIEZA ADICIONAL (cada 6 horas aprox)
+    // ==========================================
+    const shouldCleanup = Math.random() < 0.027; // ~1/37 probabilidad = cada ~6 horas
+    if (shouldCleanup) {
+      console.log('🧹 Ejecutando limpieza adicional...');
+      
+      const allTasks = await tareasAsociaciones.find({});
+      let cleanedCount = 0;
+
+      for (const task of allTasks) {
+        const channel = client.channels.cache.get(task.channelId);
+        if (!channel) {
+          await tareasAsociaciones.deleteOne({ _id: task._id });
+          cleanedCount++;
+        }
+      }
+
+      if (cleanedCount > 0) {
+        console.log(`🗑️ Limpieza completada: ${cleanedCount} tareas eliminadas`);
+      }
+    }
+
+    console.log(`✅ [${new Date().toLocaleTimeString()}] Verificación completada. ${processedCount} notificaciones enviadas.`);
+
   } catch (error) {
-    console.error('❌ Error al recuperar las tareas pendientes:', error);
+    console.error('❌ Error general en sistema de renovación:', error);
   }
-}, 600000); // Cada 10 min
+}, 10 * 60 * 1000); // Cada 10 minutos
 
 const tagRoleManager = require("./Funciones/tagRole");
 
