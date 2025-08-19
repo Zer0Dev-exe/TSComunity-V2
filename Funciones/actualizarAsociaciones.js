@@ -17,8 +17,6 @@ const STAFF_CHANNEL_PREFIX = '﹏︿'
 
 module.exports = async function actualizarListaAsociaciones(client) {
   try {
-
-const { asociations } = require('../configs/config.js')
     const TARGET_CHANNEL_ID = '1339987513401413735'
 
     // -------------------------
