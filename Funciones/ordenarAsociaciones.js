@@ -137,10 +137,9 @@ function escapeRegex(string) {
   return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 }
 
-/**
- * Crea un container para mostrar las asociaciones de un staff
- */
-function createContainerForStaff(asociation, staffId, staffDisplayName, sortedChannels) {
+
+
+function createContainerForStaff(asociation) {
   const asignado = asociation[0]?.Asignado || 'SinAsignar'
   const ahora = Date.now()
 
@@ -170,8 +169,8 @@ function createContainerForStaff(asociation, staffId, staffDisplayName, sortedCh
       .addTextDisplayComponents(
         new TextDisplayBuilder().setContent(
           asignado === 'SinAsignar'
-            ? '> No hay asociaciones sin asignar.'
-            : '> El usuario no tiene asociaciones asignadas.'
+            ? '> *No hay asociaciones sin asignar.*'
+            : '> *El usuario no tiene asociaciones asignadas.*'
         )
       )
     return container
@@ -190,22 +189,36 @@ function createContainerForStaff(asociation, staffId, staffDisplayName, sortedCh
         ? (ahora - new Date(aso.UltimaRenovacion).getTime()) < msRenovacion
         : false
 
-      // Determinar estado y estilo
-      const estado = renovada ? '✅ Renovada' : '❌ Pendiente'
+      const last = aso.UltimaRenovacion ?? null
+      const renovacionDays = aso.Renovacion ?? aso.renovacion ?? null
+
+      let estado = '❌'
+      if (renovada && last && renovacionDays) {
+        const lastMs = new Date(last).getTime()
+        if (!Number.isNaN(lastMs)) {
+          const renovacionMs = Number(renovacionDays) * 24 * 60 * 60 * 1000
+          const venceEn = (lastMs + renovacionMs) - ahora
+          const diasParaVencer = venceEn / (24 * 60 * 60 * 1000)
+
+          if (diasParaVencer > 0 && diasParaVencer <= 2) {
+            estado = '⚠️'
+          } else {
+            estado = '✅'
+          }
+        }
+      }
+
       const tiempoTexto = renovacionTimestamp 
-        ? 🗓️ `<t:${renovacionTimestamp}:R> `
-        : '🗓️ Sin fecha definida'
+        ? `🗓️ <t:${renovacionTimestamp}:R>` 
+        : '🗓️ *Sin fecha definida*'
 
       container
         .addSeparatorComponents(new SeparatorBuilder())
         .addTextDisplayComponents(
           new TextDisplayBuilder().setContent([
-            // Línea principal con canal y estado
-            `${aso.Canal ? <:canales:1340014379080618035> <#${aso.Canal}> : '<:canales:1340014379080618035> *Sin canal*'} - ${estado}`,
-
-            // Información adicional
-            `> ${tiempoTexto}`,
-            `> ${aso.Representante ? <:representante:1340014390342193252> <@${aso.Representante}> : '<:representante:1340014390342193252> *Sin representante*'}`
+            `${estado} — ${aso.Canal ? `<#${aso.Canal}>` : '*Sin canal*'}`,
+            `${tiempoTexto}`,
+            `${aso.Representante ? `<:representante:1340014390342193252> <@${aso.Representante}>` : '<:representante:1340014390342193252> *Sin representante*'}`
           ].join('\n'))
         )
     } else {
@@ -214,7 +227,7 @@ function createContainerForStaff(asociation, staffId, staffDisplayName, sortedCh
         .addSeparatorComponents(new SeparatorBuilder())
         .addTextDisplayComponents(
           new TextDisplayBuilder().setContent(
-            `${aso.Canal ? <:canales:1340014379080618035> <#${aso.Canal}> : '<:canales:1340014379080618035> *Sin canal*'}\n> *Disponible para asignar*`
+            `${aso.Canal ? `<:canales:1340014379080618035> <#${aso.Canal}>` : '<:canales:1340014379080618035> *Sin canal*'}`
           )
         )
     }
@@ -375,7 +388,7 @@ async function organizeStaffGroup(guild, staffInfo, channelsOfStaff, targetCateg
       }
     }
     
-    const container = createContainerForStaff(staffAsociaciones, staffId, staffDisplayName, sortedChannels)
+    const container = createContainerForStaff(staffAsociaciones)
     const messagePayload = { 
       components: [container], 
       flags: MessageFlags.IsComponentsV2 

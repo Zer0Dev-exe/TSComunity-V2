@@ -108,8 +108,25 @@ function createContainerForAsociation(asociation) {
         ? (ahora - new Date(aso.UltimaRenovacion).getTime()) < msRenovacion
         : false
 
-      // Determinar estado y estilo
-      const estado = renovada ? '✅ **Renovada**' : '❌ **Pendiente**'
+      const last = aso.UltimaRenovacion ?? null
+      const renovacionDays = aso.Renovacion ?? aso.renovacion ?? null
+
+      let estado = '❌'
+      if (renovada && last && renovacionDays) {
+        const lastMs = new Date(last).getTime()
+        if (!Number.isNaN(lastMs)) {
+          const renovacionMs = Number(renovacionDays) * 24 * 60 * 60 * 1000
+          const venceEn = (lastMs + renovacionMs) - ahora
+          const diasParaVencer = venceEn / (24 * 60 * 60 * 1000)
+
+          if (diasParaVencer > 0 && diasParaVencer <= 2) {
+            estado = '⚠️'
+          } else {
+            estado = '✅'
+          }
+        }
+      }
+
       const tiempoTexto = renovacionTimestamp 
         ? `🗓️ <t:${renovacionTimestamp}:R>` 
         : '🗓️ *Sin fecha definida*'
@@ -118,12 +135,9 @@ function createContainerForAsociation(asociation) {
         .addSeparatorComponents(new SeparatorBuilder())
         .addTextDisplayComponents(
           new TextDisplayBuilder().setContent([
-            // Línea principal con canal y estado
-            `${aso.Canal ? `<:canales:1340014379080618035> <#${aso.Canal}>` : '<:canales:1340014379080618035> *Sin canal*'} - ${estado}`,
-            
-            // Información adicional
-            `> ${tiempoTexto}`,
-            `> ${aso.Representante ? `<:representante:1340014390342193252> <@${aso.Representante}>` : '<:representante:1340014390342193252> *Sin representante*'}`
+            `${estado} — ${aso.Canal ? `<#${aso.Canal}>` : '*Sin canal*'}`,
+            `${tiempoTexto}`,
+            `${aso.Representante ? `<:representante:1340014390342193252> <@${aso.Representante}>` : '<:representante:1340014390342193252> *Sin representante*'}`
           ].join('\n'))
         )
     } else {
@@ -132,7 +146,7 @@ function createContainerForAsociation(asociation) {
         .addSeparatorComponents(new SeparatorBuilder())
         .addTextDisplayComponents(
           new TextDisplayBuilder().setContent(
-            `${aso.Canal ? `<:canales:1340014379080618035> <#${aso.Canal}>` : '<:canales:1340014379080618035> *Sin canal*'}\n> *Disponible para asignar*`
+            `${aso.Canal ? `<:canales:1340014379080618035> <#${aso.Canal}>` : '<:canales:1340014379080618035> *Sin canal*'}`
           )
         )
     }
@@ -140,6 +154,7 @@ function createContainerForAsociation(asociation) {
 
   return container
 }
+
 
     /**
      * Crea un Embed resumen
@@ -187,15 +202,15 @@ function createSummaryEmbed(asociations, sinAsignarCount) {
   const porcentajeRenovacion = total > 0 ? Math.round((renovadas / total) * 100) : 0
 
   const embed = new EmbedBuilder()
-    .setTitle('📊 Resumen de asociaciones')
+    .setDescription('📊 Resumen de asociaciones')
     .setColor(0x7289DA)
     .addFields(
-      { name: '📈 Total', value: `${total + sinAsignarCount}`, inline: true },
-      { name: '📋 Sin asignar', value: `${sinAsignarCount}`, inline: true },
-      { name: '⚠️ Expiran pronto', value: `${vencenPronto}`, inline: true },
-      { name: '✅ Renovadas', value: `${renovadas}`, inline: true },
-      { name: '❌ Sin renovar', value: `${sinRenovar}`, inline: true },
-      { name: '📊 %Renovación', value: `${porcentajeRenovacion}%`, inline: true }
+      { name: '📈 Total', value: `\`${total + sinAsignarCount}\``, inline: true },
+      { name: '📋 Sin asignar', value: `\`${sinAsignarCount}\``, inline: true },
+      { name: '📊 % Renovación', value: `$\`{porcentajeRenovacion}%\``, inline: true },
+      { name: '✅ Renovadas', value: `\`${renovadas}\``, inline: true },
+      { name: '⚠️ Expiran en < 2 días', value: `\`${vencenPronto}\``, inline: true },
+      { name: '❌ Sin Renovar', value: `\`${sinRenovar}\``, inline: true }
     )
     .setTimestamp()
 
