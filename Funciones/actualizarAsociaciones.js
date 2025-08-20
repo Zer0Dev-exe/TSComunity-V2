@@ -201,7 +201,7 @@ function createSummaryEmbed(asociationss, sinAsignarCount) {
   const porcentajeRenovacion = total > 0 ? Math.round((renovadas / total) * 100) : 0
 
   const embed = new EmbedBuilder()
-    .setDescription('📊 Resumen de asociaciones')
+    .setDescription('## 🏠 Resumen de asociaciones')
     .setColor(0x7289DA)
     .addFields(
       { name: '📈 Total', value: `\`${total + sinAsignarCount}\``, inline: true },

@@ -85,7 +85,7 @@ function normalizeStaffName(displayName) {
  */
 function createDiscordChannelName(staffDisplayName) {
   const normalizedName = normalizeStaffName(staffDisplayName)
-  return (`${STAFF_CHANNEL_PREFIX}${normalizeDiscordChannelName(normalizedName)}${STAFF_CHANNEL_SUFIX}`)
+  return (`${STAFF_CHANNEL_PREFIX}${normalizeDiscordChannelName(normalizedName)}${STAFF_CHANNEL_SUFFIX}`)
 }
 
 /**
