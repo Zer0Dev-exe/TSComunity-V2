@@ -323,6 +323,7 @@ borrarMensajes()
 
 
 const tareasAsociaciones = require('./Esquemas/tareasAsociaciones.js'); // Asegúrate de usar la ruta correcta
+await tareasAsociaciones.deleteMany({});
 
 // ==========================================
 // SISTEMA COMPLETO DE RENOVACIÓN DE ASOCIACIONES
