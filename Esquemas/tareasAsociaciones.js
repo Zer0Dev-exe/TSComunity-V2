@@ -1,9 +1,9 @@
-const {model, Schema} = require('mongoose');
-
 let tareasAsociaciones = new Schema({
-    channelId: String,
-    userId: String,
-    expirationDate: Date
-  });
+  channelId: { type: String, required: true },
+  userId: { type: String, required: true },
+  expirationDate: { type: Date, required: true },
 
-module.exports = model("tareasAsociaciones", tareasAsociaciones)
+  firstNotified: { type: Date, default: null },
+  lastNotified: { type: Date, default: null },
+  reminderCount: { type: Number, default: 0 }
+})
